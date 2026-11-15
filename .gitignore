@@ -1,12 +1,5 @@
-# JANGAN PERNAH UPLOAD FILE RAHASIA & KUNCI LOGIN KE GITHUB!
-.env
-client_secrets.json
-client_secret_*.json
-youtube_token.pickle
-GITHUB_SECRET_YOUTUBE_TOKEN.txt
-telegram_last_update.txt
-
-# Folder hasil render & cache Python
+# Hanya abaikan folder hasil render video & cache Python
+# File .env dan youtube_token.pickle ikut di-upload ke Private Repo agar langsung jalan tanpa setting Secrets!
 output/
 __pycache__/
 *.pyc
@@ -14,3 +7,4 @@ __pycache__/
 *.mp4
 *.mp3
 *.jpg
+GITHUB_SECRET_YOUTUBE_TOKEN.txt
