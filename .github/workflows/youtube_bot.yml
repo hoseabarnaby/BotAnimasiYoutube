@@ -37,12 +37,12 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run Bot (Otomatis baca dari file .env & youtube_token.pickle di Private Repo)
+      - name: Run Bot (Otomatis Standby 25 Menit Menunggu Chat Telegram Kamu)
         run: |
           if [ -n "${{ github.event.inputs.topic }}" ]; then
             python main.py --topic "${{ github.event.inputs.topic }}" --upload
           else
-            python telegram_bot.py --check-once
+            python telegram_bot.py --max-minutes 25
           fi
 
       - name: Save Telegram Offset so Messages Are Not Repeated

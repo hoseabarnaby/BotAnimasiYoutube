@@ -459,6 +459,7 @@ EMOJI_WORDS = {
     "rabbit": "\U0001F430", "kelinci": "\U0001F430", "bear": "\U0001F43B", "beruang": "\U0001F43B",
     "wolf": "\U0001F43A", "serigala": "\U0001F43A", "penguin": "\U0001F427", "pinguin": "\U0001F427",
     "crab": "\U0001F980", "kepiting": "\U0001F980", "frog": "\U0001F438", "katak": "\U0001F438",
+    "lizard": "\U0001F98E", "kadal": "\U0001F98E", "gecko": "\U0001F98E", "crocodile": "\U0001F40A", "buaya": "\U0001F40A",
     "mouse": "\U0001F42D", "tikus": "\U0001F42D", "giraffe": "\U0001F992", "jerapah": "\U0001F992",
     "panda": "\U0001F43C", "owl": "\U0001F989", "hantu": "\U0001F47B", "shrimp": "\U0001F990",
     "udang": "\U0001F990", "squid": "\U0001F991", "cumi": "\U0001F991", "snail": "\U0001F40C",

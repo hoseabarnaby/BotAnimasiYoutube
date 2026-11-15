@@ -117,7 +117,7 @@ def save_last_offset(offset):
         f.write(str(offset))
 
 
-def run_telegram_bot(check_once=False, auto_upload=True):
+def run_telegram_bot(check_once=False, auto_upload=True, max_minutes=0):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
     if not token or token.startswith("123456"):
         print("[!] TELEGRAM_BOT_TOKEN belum diisi di file .env atau GitHub Secrets!")
@@ -125,14 +125,19 @@ def run_telegram_bot(check_once=False, auto_upload=True):
 
     print("Bot Telegram AI Cartoon Shorts aktif! Kirim topik cerita ke bot kamu.")
     offset = get_last_offset()
+    start_ts = time.time()
 
     while True:
-        res = tg_api(token, "getUpdates", data={"offset": offset + 1, "timeout": 20 if not check_once else 1},
-                     retries=1, timeout=(20, 60))
+        if max_minutes > 0 and (time.time() - start_ts) >= (max_minutes * 60):
+            print(f"[*] Sesi standby {max_minutes} menit selesai.")
+            break
+
+        res = tg_api(token, "getUpdates", data={"offset": offset + 1, "timeout": 20 if not check_once else 5},
+                     retries=2, timeout=(20, 60))
         if not res.get("ok"):
             if check_once:
                 break
-            time.sleep(8)  # jaringan bermasalah: tunggu, jangan spam
+            time.sleep(5)
             continue
 
         updates = res.get("result", [])
@@ -152,11 +157,11 @@ def run_telegram_bot(check_once=False, auto_upload=True):
             if text.startswith("/start") or text.startswith("/help"):
                 send_text(token, chat_id,
                           "Halo! Aku bot pembuat video animasi stickman YouTube Shorts.\n\n"
-                          "Ketik topik cerita apa saja, contoh:\n"
+                          "Ketik topik cerita apa saja sekarang, contoh:\n"
+                          "- Kadal yang bisa berlari di atas air\n"
                           "- Kenapa gurita punya 3 jantung?\n"
-                          "- Perang paling singkat di dunia\n"
-                          "- Kenapa pesawat bisa terbang?\n\n"
-                          "Aku akan membuatkan video, thumbnail, judul, deskripsi, dan tags.")
+                          "- Perang paling singkat di dunia\n\n"
+                          "Aku akan langsung membuatkan video, thumbnail, judul, deskripsi, dan tags!")
             else:
                 process_topic_from_telegram(token, chat_id, text, auto_upload=auto_upload)
 
@@ -167,7 +172,8 @@ def run_telegram_bot(check_once=False, auto_upload=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Telegram Bot Controller untuk AI Cartoon Shorts")
-    parser.add_argument("--check-once", action="store_true", help="Cek pesan 1 kali lalu keluar (GitHub Actions)")
+    parser.add_argument("--check-once", action="store_true", help="Cek pesan 1 kali lalu keluar")
+    parser.add_argument("--max-minutes", type=int, default=0, help="Durasi standby dalam menit (cocok untuk GitHub Actions)")
     parser.add_argument("--no-upload", action="store_true", help="Jangan auto-upload ke YouTube")
     args = parser.parse_args()
-    run_telegram_bot(check_once=args.check_once, auto_upload=not args.no_upload)
+    run_telegram_bot(check_once=args.check_once, auto_upload=not args.no_upload, max_minutes=args.max_minutes)
