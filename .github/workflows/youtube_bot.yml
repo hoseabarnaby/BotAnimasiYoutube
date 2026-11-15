@@ -1,7 +1,11 @@
 name: AI Cartoon Shorts Bot (Telegram + Auto YouTube)
 
 on:
-  # 1. Bisa dijalankan manual langsung dari tab Actions di GitHub
+  # 1. OTOMATIS LANGSUNG JALAN BEGITU DI-UPLOAD (PUSH) KE GITHUB!
+  push:
+    branches: [ main ]
+
+  # 2. Bisa juga dijalankan manual dari tab Actions
   workflow_dispatch:
     inputs:
       topic:
@@ -9,13 +13,18 @@ on:
         required: false
         default: ""
 
-  # 2. Otomatis mengecek chat Telegram kamu secara berkala
+  # 3. Otomatis nyambung terus menerus
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/30 * * * *"
+
+concurrency:
+  group: telegram_bot_listener
+  cancel-in-progress: false
 
 jobs:
   build_and_upload_short:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     permissions:
       contents: write
 
@@ -37,18 +46,19 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run Bot (Otomatis Standby 25 Menit Menunggu Chat Telegram Kamu)
+      - name: Run Bot Nonstop (Standby 5 Jam Penuh Menunggu Chat Telegram Kamu)
         run: |
           if [ -n "${{ github.event.inputs.topic }}" ]; then
             python main.py --topic "${{ github.event.inputs.topic }}" --upload
           else
-            python telegram_bot.py --max-minutes 25
+            python telegram_bot.py --max-minutes 300
           fi
 
       - name: Save Telegram Offset so Messages Are Not Repeated
         if: always()
         run: |
           if [ -f telegram_last_update.txt ]; then
+            git pull --rebase origin main || true
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -f telegram_last_update.txt youtube_token.pickle

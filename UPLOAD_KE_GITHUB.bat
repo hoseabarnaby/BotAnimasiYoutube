@@ -1,17 +1,19 @@
 @echo off
-title Upload Semua Langsung ke Private GitHub
+title Upload & Aktifkan Server GitHub Nonstop
 echo =================================================================
-echo   MENGUNGGAH SEMUA FILE + .ENV + TOKEN YOUTUBE KE PRIVATE GITHUB
+echo   MENGUPDATE KODE TERBARU KE GITHUB & MENYALAKAN SERVER 5 JAM
 echo =================================================================
 echo.
+git pull --rebase origin main 2>nul
 git add -f .env youtube_token.pickle client_secrets.json .gitignore .github/workflows/youtube_bot.yml
-git add .
-git commit -m "Include .env and YouTube token directly for Private Repo"
-git push -u origin main
+git add -A
+git commit -m "Enable 5-hour nonstop Telegram listener on push and schedule"
+git push -u origin main --force
 
 echo.
 echo =================================================================
-echo   SELESAI 100%! TIDAK PERLU ISI SECRETS LAGI!
-echo   Langsung buka tab "Actions" di GitHub kamu lalu klik "Run workflow"!
+echo   BERHASIL! Server GitHub sekarang OTOMATIS MENYALA selama 5 JAM!
+echo   Tunggu sekitar 1 menit (proses instal FFmpeg di server GitHub),
+echo   lalu pesan Telegram kamu akan langsung dibalas otomatis!
 echo =================================================================
 pause
