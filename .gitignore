@@ -1,0 +1,16 @@
+# JANGAN PERNAH UPLOAD FILE RAHASIA & KUNCI LOGIN KE GITHUB!
+.env
+client_secrets.json
+client_secret_*.json
+youtube_token.pickle
+GITHUB_SECRET_YOUTUBE_TOKEN.txt
+telegram_last_update.txt
+
+# Folder hasil render & cache Python
+output/
+__pycache__/
+*.pyc
+*.pyo
+*.mp4
+*.mp3
+*.jpg
