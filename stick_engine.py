@@ -25,6 +25,24 @@ def ease_back(p):
     return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2
 
 
+def _extract_props_from_narration(narration):
+    """Mencari otomatis kata benda/hewan/aktivitas di dalam kalimat narasi Bahasa Indonesia/Inggris."""
+    import re
+    from stick_props import EMOJI_WORDS, normalize_prop
+    found = []
+    tokens = re.findall(r"[a-z]+", str(narration or "").lower())
+    for tok in tokens:
+        if tok in EMOJI_WORDS:
+            p = "emoji:" + EMOJI_WORDS[tok]
+            if p not in found:
+                found.append(p)
+        else:
+            np = normalize_prop(tok)
+            if np and np not in found:
+                found.append(np)
+    return found
+
+
 def prepare_scene(scene, idx=1):
     """Membersihkan data adegan dari DeepSeek & menyiapkan latar + penempatan properti."""
     pose = str(scene.get("pose", "")).lower()
@@ -50,8 +68,17 @@ def prepare_scene(scene, idx=1):
         n = normalize_prop(p)
         if n and n not in names:
             names.append(n)
+
+    # Tambahkan otomatis objek dari kalimat narasi jika props dari AI kurang dari 2
+    narration_props = _extract_props_from_narration(scene.get("narration", ""))
+    for np in narration_props:
+        if len(names) >= 3:
+            break
+        if np not in names:
+            names.append(np)
+
     if not names:
-        names = ["lightbulb"]
+        names = ["question_marks"]
 
     area = [n for n in names if get_prop(n)[1] == "area"]
     ground = [n for n in names if get_prop(n)[1] == "ground"]

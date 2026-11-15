@@ -17,20 +17,28 @@ ATURAN VISUAL (SANGAT PENTING). Animasi digambar oleh engine dengan karakter sti
 Kamu memilih elemen visual untuk tiap adegan agar SESUAI ISI NARASI ADEGAN ITU. Jangan ulangi kombinasi yang sama antar adegan.
 Pilih elemen visual dari daftar ini:
 - "setting": city, indoor, office, bank, market, nature, space, castle, ocean, sky, lab, desert, plain
-  (ocean = laut/hewan laut, sky = pesawat/langit/cuaca, lab = sains/kesehatan, desert = Mesir/gurun/sejarah kuno,
-   castle = sejarah/perang/kerajaan, space = luar angkasa, nature = hewan darat/hutan/alam)
-- "props" (1-3 item, urutkan dari yang paling penting). Ada 2 jenis:
-  A) Gambar animasi bawaan: money_pile, shopping_cart, bank_building, printing_machine, laptop, house, fire, trophy,
+  (ocean = laut/sungai/air/hewan air, sky = pesawat/langit/cuaca, lab = sains/biologi/kesehatan, desert = Mesir/gurun/sejarah kuno,
+   castle = sejarah/perang/kerajaan, space = luar angkasa, nature = hewan darat/hutan/alam/danau)
+- "props" (WAJIB 2 sampai 3 item per adegan!). Ada 2 jenis yang bisa kamu tulis di dalam array `props`:
+  A) Nama properti animasi vektor:
+     money_pile, shopping_cart, bank_building, printing_machine, laptop, house, fire, trophy,
      chart_down, chart_up, wallet_empty, bread, price_tag, coins, lightbulb, question_marks, clock, phone, book, globe,
      rocket, heart, warning, boom, gear, balance_scale, zzz, battery, briefcase, storm_cloud, banknotes_rain
-  B) OBJEK APA SAJA: tulis satu kata benda Inggris (atau emoji-nya), maka akan tampil sebagai ikon besar berwarna.
-     Contoh: octopus, shark, whale, fish, bird, cat, dog, elephant, dinosaur, spider, bee, snake, airplane, helicopter, ship, car,
-     train, satellite, ufo, atom, dna, microscope, telescope, flask, magnet, volcano, tornado, rainbow, sun, moon, planet,
-     tree, mountain, sword, shield, bomb, castle, crown, scroll, flag, map, compass, anchor, pyramid, brain, skull, bone,
-     tooth, eye, virus, pill, syringe, apple, pizza, coffee, camera, guitar, key, lock, gift, diamond, robot, alien.
-- WAJIB: jika topik tentang hewan, kendaraan, sains, sejarah, atau benda tertentu, tampilkan OBJEK UTAMA yang sedang dibicarakan
-  narasi sebagai props (jenis B). Contoh: narasi tentang gurita -> setting ocean, props [octopus]; tentang pesawat -> setting sky,
-  props [airplane]; tentang DNA -> setting lab, props [dna, microscope]; tentang perang kuno -> setting castle, props [sword, shield].
+  B) KARAKTER EMOJI UNICODE APAPUN SECARA LANGSUNG (misalnya: "🦎", "🌊", "🏃", "🐙", "❤️", "🚢", "💣", "🏰", "✈️", "🧬", "🔬", "🦖", "🌋", "🧠", "🦠", "👑", "⚔️", "🛡️", "🦁", "🦈", "🦅", "🐍", "🐜", "🐝", "🌍", "⚡", "❄️", "🍕", "☕", "🏥", "💊", "🧲", "🔭")!
+     Engine kami merender SEMUA karakter emoji Unicode yang ada di dunia menjadi gambar ilustrasi besar berwarna dengan garis tepi stiker hitam tebal!
+     ATURAN KERAS UNTUK `props`:
+     - Untuk objek spesifik apa pun yang disebut di narasi (hewan apa saja, benda apa saja, negara/simbol apa saja, aktivitas apa saja) yang tidak ada di daftar A, TULIS LANGSUNG KARAKTER EMOJI UNICODE-NYA di dalam `props`!
+     - Contoh 1 (Topik Kadal Basilisk lari di atas air):
+       Scene 1: `"setting": "nature", "props": ["🦎", "🌊", "🏃"]`
+       Scene 2: `"setting": "ocean", "props": ["🦎", "🦶", "💧"]`
+       Scene 3: `"setting": "lab", "props": ["🦎", "⚡", "🔬"]`
+     - Contoh 2 (Topik Gurita punya 3 jantung & darah biru):
+       Scene 1: `"setting": "ocean", "props": ["🐙", "❤️", "question_marks"]`
+       Scene 2: `"setting": "lab", "props": ["🐙", "💙", "🩸"]`
+     - Contoh 3 (Topik Perang 38 Menit Inggris vs Zanzibar):
+       Scene 1: `"setting": "castle", "props": ["⚔️", "clock", "👑"]`
+       Scene 2: `"setting": "ocean", "props": ["🚢", "💣", "boom"]`
+     - JANGAN PERNAH memakai `lightbulb` kecuali narasi memang berbicara tentang lampu atau ide!
 - "pose": talk, point, panic, shrug, cry, celebrate, think, idle
 - "emotion": neutral, happy, sad, shocked, angry, thinking
 - "hat": none, tophat, crown, hardhat, cap, graduate, police
