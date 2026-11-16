@@ -432,10 +432,10 @@ def storm_cloud(g, x, y, s, t):
 
 # ------------------------------- AREA -----------------------------------------
 def banknotes_rain(g, t):
-    for i in range(16):
-        x0 = (i * 97) % 680 + 20
-        sp = 150 + (i * 37) % 90
-        y = 110 + ((t * sp + i * 131) % 820)
+    for i in range(24):
+        x0 = (i * 97) % (W - 60) + 30
+        sp = 130 + (i * 37) % 85
+        y = 30 + ((t * sp + i * 131) % 520)
         bill(g, x0 + math.sin(t * 1.5 + i) * 24, y, 58, 30, math.sin(t * 2 + i) * 40 + i * 12)
 
 

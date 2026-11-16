@@ -1,4 +1,4 @@
-"""Penyusun adegan: memilih latar, properti, pose, ekspresi sesuai narasi, lalu menggambar tiap frame."""
+"""Penyusun adegan 16:9 Widescreen (1280x720): memilih latar, properti, pose, ekspresi, dan menggambar tiap frame."""
 import math
 from PIL import Image
 from stick_core import (
@@ -12,10 +12,10 @@ HATS = {"none", "tophat", "crown", "hardhat", "cap", "graduate", "police"}
 OUTFITS = {"tshirt", "suit"}
 DEFAULT_POSES = ["talk", "point", "shrug", "think", "talk", "celebrate"]
 
-# Slot penempatan (untuk karakter di kiri; otomatis dicerminkan jika karakter di kanan)
-GROUND_SLOT = (535, GROUND_Y)
-HIGH_SLOTS_WITH_GROUND = [(430, 360, 1.0), (175, 260, 0.75), (580, 205, 0.7)]
-HIGH_SLOTS_NO_GROUND = [(505, 520, 1.25), (190, 300, 0.8), (565, 250, 0.75)]
+# Slot penempatan Widescreen 16:9 (1280x720) saat karakter di kiri (x=320); otomatis dicerminkan jika di kanan
+GROUND_SLOT = (880, GROUND_Y)
+HIGH_SLOTS_WITH_GROUND = [(660, 220, 1.05), (1050, 200, 0.90), (200, 175, 0.80)]
+HIGH_SLOTS_NO_GROUND = [(760, 320, 1.30), (1040, 220, 0.95), (550, 190, 0.85)]
 
 
 def ease_back(p):
@@ -44,7 +44,7 @@ def _extract_props_from_narration(narration):
 
 
 def prepare_scene(scene, idx=1):
-    """Membersihkan data adegan dari DeepSeek & menyiapkan latar + penempatan properti."""
+    """Membersihkan data adegan dari DeepSeek & menyiapkan latar + penempatan properti 16:9."""
     pose = str(scene.get("pose", "")).lower()
     if pose not in POSES:
         pose = DEFAULT_POSES[(idx - 1) % len(DEFAULT_POSES)]
@@ -69,7 +69,6 @@ def prepare_scene(scene, idx=1):
         if n and n not in names:
             names.append(n)
 
-    # Tambahkan otomatis objek dari kalimat narasi jika props dari AI kurang dari 2
     narration_props = _extract_props_from_narration(scene.get("narration", ""))
     for np in narration_props:
         if len(names) >= 3:
@@ -86,7 +85,7 @@ def prepare_scene(scene, idx=1):
 
     placed = []
     if ground:
-        placed.append((ground[0], (GROUND_SLOT[0], GROUND_SLOT[1], 1.0)))
+        placed.append((ground[0], (GROUND_SLOT[0], GROUND_SLOT[1], 1.05)))
         high = high + ground[1:]
         slots = HIGH_SLOTS_WITH_GROUND
     else:
@@ -94,7 +93,7 @@ def prepare_scene(scene, idx=1):
     for n, slot in zip(high, slots):
         x, y, size = slot
         if get_prop(n)[1] == "ground":
-            y = y + 90 * size
+            y = y + 80 * size
         placed.append((n, (x, y, size)))
 
     return {
@@ -106,7 +105,7 @@ def prepare_scene(scene, idx=1):
 
 
 def compose_frame(vis, t, amp, speaking):
-    """Menggambar 1 frame (RGB 720x1280) tanpa subtitle."""
+    """Menggambar 1 frame Widescreen 16:9 (RGB 1280x720) tanpa subtitle."""
     frame = vis["bg"].copy()
     dyn = Image.new("RGBA", (W * S, DYN_H * S), (0, 0, 0, 0))
     g = G(dyn, S, 0, DYN_TOP)
@@ -121,15 +120,15 @@ def compose_frame(vis, t, amp, speaking):
             get_prop(name)[0](g, local)
 
     for i, (name, (x, y, size)) in enumerate(vis["placed"]):
-        local = t - (0.15 + i * 0.3)
+        local = t - (0.15 + i * 0.28)
         if local <= 0:
             continue
-        sc = ease_back(local / 0.45)
+        sc = ease_back(local / 0.42)
         if sc < 0.05:
             continue
         get_prop(name)[0](g, mx(x), y, size * sc, local)
 
-    char_x = 505 if mirror else 215
+    char_x = 960 if mirror else 320
     face = -1 if mirror else 1
     draw_character(g, char_x, GROUND_Y, t, amp, speaking, vis["pose"], vis["emotion"],
                    vis["hat"], vis["outfit"], face)

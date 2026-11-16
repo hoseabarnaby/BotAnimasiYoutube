@@ -32,7 +32,7 @@ def apply_camera(frame, effect, progress, width, height):
     return out
 
 
-def render_scene_clip(scene, tts_data, work_dir, width=720, height=1280, fps=24):
+def render_scene_clip(scene, tts_data, work_dir, width=1280, height=720, fps=24):
     scene_id = scene.get("scene_id", 1)
     camera_effect = scene.get("camera_effect", "zoom_in")
     narration = scene.get("narration", "")

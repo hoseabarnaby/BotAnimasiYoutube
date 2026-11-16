@@ -1,21 +1,21 @@
 """
-Inti engine animasi Stickman Explainer (vektor, tanpa AI gambar):
-- Kanvas gambar anti-alias (supersampling 2x)
-- Latar belakang (kota, kantor, bank, pasar, alam, luar angkasa, dll.)
-- Karakter stickman kaos biru dengan pose, ekspresi, topi & lip-sync
+Inti engine animasi Stickman Explainer (Lanskap 16:9 Sinematik HD 1280x720):
+- Kanvas gambar anti-alias (supersampling 2x -> 2560x1440 di-downsample ke 1280x720)
+- 13 Latar belakang widescreen 16:9 detail (kota, kantor, bank, pasar, rumah, alam, luar angkasa, kastil, laut, langit, lab, gurun, polos)
+- Karakter stickman kaos biru dengan pose, ekspresi, topi, jas & auto lip-sync
 """
 import math
 import random
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
 
-W, H = 720, 1280          # resolusi video 9:16
-S = 2                     # supersampling
-FLOOR_Y = 880             # garis lantai
-GROUND_Y = 935            # tempat kaki karakter berpijak
-DYN_TOP = 80              # area layer dinamis (karakter + properti)
-DYN_H = 960
-K = "#1a1a1a"             # warna garis tebal
+W, H = 1280, 720          # Resolusi Widescreen Long Video 16:9 (HD)
+S = 2                     # Supersampling 2x untuk garis tajam
+FLOOR_Y = 535             # Garis lantai widescreen
+GROUND_Y = 578            # Tempat kaki karakter & properti berpijak
+DYN_TOP = 20              # Area layer dinamis
+DYN_H = 600
+K = "#1a1a1a"             # Warna garis outline tebal
 
 RED = "#e63946"
 YEL = "#ffd166"
@@ -27,6 +27,7 @@ def get_font(size):
     size = max(8, int(size))
     for fp in (
         "C:/Windows/Fonts/arialbd.ttf",
+        "C:/Windows/Fonts/impact.ttf",
         "C:/Windows/Fonts/segoeuib.ttf",
         "C:/Windows/Fonts/tahomabd.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -43,7 +44,7 @@ def get_font(size):
 
 
 class G:
-    """Kuas gambar: semua koordinat dalam satuan logis (720x1280), otomatis di-scale."""
+    """Kuas gambar widescreen 1280x720 dengan supersampling."""
 
     def __init__(self, img, s=S, ox=0, oy=0):
         self.img = img
@@ -113,7 +114,7 @@ def rot_pts(pts, cx, cy, ang):
 
 
 # =============================================================================
-# LATAR BELAKANG
+# LATAR BELAKANG WIDESCREEN 16:9 (1280 x 720)
 # =============================================================================
 def _gradient(g, y1, y2, c1, c2, step=6):
     for y in range(int(y1), int(y2), step):
@@ -134,7 +135,7 @@ def _cloud(g, x, y, sc=1.0):
 
 def _floor(g, color, line, top=FLOOR_Y):
     g.rect(-10, top, W + 10, H + 10, fill=color, outline=K, w=5)
-    for y in range(top + 60, H, 70):
+    for y in range(top + 48, H, 55):
         g.line([(0, y), (W, y)], fill=line, w=3, caps=False)
 
 
@@ -149,185 +150,187 @@ def _windows(g, x, y, w, h, cols, rows, color="#fff1b8"):
 
 def _bg_city(g):
     _gradient(g, 0, FLOOR_Y, (120, 196, 245), (255, 238, 214))
-    g.ellipse(520, 120, 640, 240, fill="#ffe27a", outline=K, w=5)
-    _cloud(g, 150, 190, 1.0)
-    _cloud(g, 470, 330, 0.8)
-    buildings = [(-10, 130, 430, "#cdb4db"), (110, 100, 320, "#ffc8dd"), (200, 140, 500, "#bde0fe"),
-                 (330, 100, 360, "#a2d2ff"), (420, 140, 450, "#ffafcc"), (550, 100, 330, "#cdb4db"),
-                 (630, 110, 410, "#bde0fe")]
+    g.ellipse(1060, 60, 1170, 170, fill="#ffe27a", outline=K, w=5)
+    _cloud(g, 200, 110, 1.0)
+    _cloud(g, 640, 140, 0.85)
+    _cloud(g, 920, 95, 0.75)
+    buildings = [
+        (-10, 140, 310, "#cdb4db"), (120, 130, 240, "#ffc8dd"), (240, 160, 360, "#bde0fe"),
+        (390, 130, 270, "#a2d2ff"), (510, 160, 330, "#ffafcc"), (660, 140, 250, "#cdb4db"),
+        (790, 165, 350, "#bde0fe"), (945, 140, 280, "#ffc8dd"), (1075, 150, 320, "#a2d2ff"),
+        (1210, 100, 260, "#cdb4db")
+    ]
     for x, w, h, col in buildings:
         g.rect(x, FLOOR_Y - h, x + w, FLOOR_Y, fill=col, outline=K, w=4)
-        _windows(g, x + 8, FLOOR_Y - h + 20, w - 16, h - 60, max(2, int(w / 38)), max(3, int(h / 60)))
+        _windows(g, x + 8, FLOOR_Y - h + 18, w - 16, h - 40, max(2, int(w / 40)), max(3, int(h / 55)))
     _floor(g, "#d9d2c5", "#c4bcad")
-    for x in range(20, W, 120):
-        g.rect(x, 1085, x + 60, 1100, fill="#f1ede4", outline=None, w=0)
+    for x in range(30, W, 140):
+        g.rect(x, 625, x + 75, 640, fill="#f1ede4", outline=None, w=0)
 
 
 def _bg_indoor(g):
     g.rect(-5, 0, W + 5, FLOOR_Y, fill="#f3e9dc", outline=None, w=0)
-    g.rect(40, 170, 250, 560, fill="#dff3fb", outline=K, w=6)
-    g.line([(145, 170), (145, 560)], w=5, caps=False)
-    g.line([(40, 365), (250, 365)], w=5, caps=False)
-    g.rect(28, 560, 262, 585, fill="#d4a373", outline=K, w=5)
-    g.poly([(100, 520), (170, 520), (160, 560), (110, 560)], fill="#e07a5f", outline=K, w=4)
-    g.ellipse(105, 450, 165, 525, fill="#81b29a", outline=K, w=4)
-    g.rect(400, 220, 640, 420, fill="#ffffff", outline=K, w=6)
-    g.rect(418, 238, 622, 402, fill="#ffd6a5", outline=K, w=3)
-    g.ellipse(470, 280, 570, 360, fill="#f4a261", outline=K, w=3)
-    g.rect(300, 470, 680, 560, fill="#e9d8c4", outline=K, w=4)
+    # Jendela kiri
+    g.rect(70, 90, 340, 360, fill="#dff3fb", outline=K, w=6)
+    g.line([(205, 90), (205, 360)], w=5, caps=False)
+    g.line([(70, 225), (340, 225)], w=5, caps=False)
+    g.rect(55, 360, 355, 382, fill="#d4a373", outline=K, w=5)
+    # Tanaman pot
+    g.poly([(165, 325), (235, 325), (225, 360), (175, 360)], fill="#e07a5f", outline=K, w=4)
+    g.ellipse(170, 265, 230, 330, fill="#81b29a", outline=K, w=4)
+    # Lukisan dinding tengah-kanan
+    g.rect(520, 100, 780, 270, fill="#ffffff", outline=K, w=6)
+    g.rect(538, 118, 762, 252, fill="#ffd6a5", outline=K, w=3)
+    g.ellipse(600, 145, 700, 220, fill="#f4a261", outline=K, w=3)
+    # Rak buku kanan
+    g.rect(900, 140, 1190, 360, fill="#d4a373", outline=K, w=5)
+    g.line([(900, 250), (1190, 250)], w=5, caps=False)
+    for bx, col in ((925, "#e63946"), (960, "#2a9d8f"), (995, "#ffd166"), (1060, "#5aa9e6"), (1100, "#9b5de5")):
+        g.rect(bx, 165, bx + 28, 250, fill=col, outline=K, w=3)
     _floor(g, "#c68b59", "#a9714b")
 
 
 def _bg_office(g):
     g.rect(-5, 0, W + 5, FLOOR_Y, fill="#dbe4ee", outline=None, w=0)
-    g.rect(60, 120, 660, 520, fill="#bfe3f7", outline=K, w=7)
-    for x, w, h, col in [(80, 90, 200, "#8ecae6"), (170, 70, 280, "#6fb6dc"), (240, 100, 230, "#8ecae6"),
-                         (340, 80, 300, "#6fb6dc"), (420, 110, 220, "#8ecae6"), (530, 100, 270, "#6fb6dc")]:
-        g.rect(x, 520 - h, x + w, 520, fill=col, outline=K, w=3)
-    g.line([(360, 120), (360, 520)], w=6, caps=False)
-    g.line([(60, 320), (660, 320)], w=6, caps=False)
-    g.rect(40, 700, 120, 880, fill="#e07a5f", outline=K, w=4)
-    g.ellipse(30, 600, 130, 720, fill="#81b29a", outline=K, w=4)
+    g.rect(120, 70, 1160, 370, fill="#bfe3f7", outline=K, w=7)
+    skyline = [
+        (150, 110, 160, "#8ecae6"), (270, 95, 220, "#6fb6dc"), (380, 130, 180, "#8ecae6"),
+        (520, 110, 240, "#6fb6dc"), (640, 140, 170, "#8ecae6"), (790, 120, 210, "#6fb6dc"),
+        (920, 110, 190, "#8ecae6"), (1040, 95, 230, "#6fb6dc")
+    ]
+    for x, w, h, col in skyline:
+        g.rect(x, 370 - h, x + w, 370, fill=col, outline=K, w=3)
+    g.line([(465, 70), (465, 370)], w=6, caps=False)
+    g.line([(815, 70), (815, 370)], w=6, caps=False)
+    g.line([(120, 220), (1160, 220)], w=6, caps=False)
     _floor(g, "#8d99ae", "#7b869b")
 
 
 def _bg_bank(g):
     g.rect(-5, 0, W + 5, FLOOR_Y, fill="#f1e4c8", outline=None, w=0)
-    for x in (70, 280, 490):
-        g.rect(x, 140, x + 130, FLOOR_Y, fill="#fbf5e6", outline=K, w=5)
-        g.rect(x - 14, 120, x + 144, 160, fill="#e9dcc0", outline=K, w=5)
-        for ly in range(180, 860, 120):
-            g.line([(x + 30, ly), (x + 30, ly + 70)], fill="#d9c9a5", w=3, caps=False)
-    g.rect(-5, 0, W + 5, 110, fill="#e9dcc0", outline=K, w=5)
-    for i, x in enumerate(range(-20, W + 80, 100)):
-        g.rect(x, FLOOR_Y, x + 100, H + 10, fill="#f8f3ea" if i % 2 == 0 else "#b8a98a", outline=K, w=3)
+    for x in (90, 370, 650, 930):
+        g.rect(x, 85, x + 130, FLOOR_Y, fill="#fbf5e6", outline=K, w=5)
+        g.rect(x - 14, 65, x + 144, 100, fill="#e9dcc0", outline=K, w=5)
+        for ly in range(120, FLOOR_Y - 40, 100):
+            g.line([(x + 30, ly), (x + 30, ly + 60)], fill="#d9c9a5", w=3, caps=False)
+    g.rect(-5, 0, W + 5, 65, fill="#e9dcc0", outline=K, w=5)
+    for i, x in enumerate(range(-20, W + 80, 110)):
+        g.rect(x, FLOOR_Y, x + 110, H + 10, fill="#f8f3ea" if i % 2 == 0 else "#b8a98a", outline=K, w=3)
     g.rect(-10, FLOOR_Y, W + 10, FLOOR_Y + 8, fill="#6b5b45", outline=K, w=4)
 
 
 def _bg_market(g):
     g.rect(-5, 0, W + 5, FLOOR_Y, fill="#fdf0d5", outline=None, w=0)
     cols = ["#e63946", "#f4a261", "#2a9d8f", "#ffd166", "#5aa9e6", "#9b5de5"]
-    for row, y in enumerate((180, 400, 620)):
-        g.rect(-5, y + 120, W + 5, y + 140, fill="#a9714b", outline=K, w=4)
-        for i in range(0, W, 62):
-            c = cols[(i // 62 + row * 2) % len(cols)]
-            hh = 60 + ((i // 62) * 17 + row * 11) % 40
-            g.rrect(i + 6, y + 120 - hh, i + 54, y + 120, r=6, fill=c, outline=K, w=3)
-    g.rect(-5, 90, W + 5, 130, fill="#e63946", outline=K, w=5)
+    for row, y in enumerate((110, 250, 390)):
+        g.rect(-5, y + 85, W + 5, y + 102, fill="#a9714b", outline=K, w=4)
+        for i in range(0, W, 68):
+            c = cols[(i // 68 + row * 2) % len(cols)]
+            hh = 45 + ((i // 68) * 17 + row * 11) % 30
+            g.rrect(i + 8, y + 85 - hh, i + 56, y + 85, r=6, fill=c, outline=K, w=3)
+    g.rect(-5, 40, W + 5, 75, fill="#e63946", outline=K, w=5)
     _floor(g, "#e9ecef", "#ced4da")
 
 
 def _bg_nature(g):
     _gradient(g, 0, FLOOR_Y, (140, 205, 250), (230, 247, 255))
-    g.ellipse(70, 130, 180, 240, fill="#ffe27a", outline=K, w=5)
-    _cloud(g, 460, 210, 1.0)
-    g.ellipse(-200, 600, 420, 1100, fill="#95d5b2", outline=K, w=5)
-    g.ellipse(250, 650, 900, 1150, fill="#74c69d", outline=K, w=5)
-    for x, y in ((520, 640), (620, 700), (110, 650)):
-        g.rect(x - 9, y, x + 9, y + 110, fill="#a9714b", outline=K, w=4)
-        g.ellipse(x - 52, y - 100, x + 52, y + 20, fill="#52b788", outline=K, w=5)
+    g.ellipse(90, 60, 190, 160, fill="#ffe27a", outline=K, w=5)
+    _cloud(g, 460, 110, 1.0)
+    _cloud(g, 920, 135, 0.9)
+    g.ellipse(-180, 360, 560, 720, fill="#95d5b2", outline=K, w=5)
+    g.ellipse(420, 380, 1400, 740, fill="#74c69d", outline=K, w=5)
+    for x, y in ((140, 390), (620, 400), (1040, 385), (1160, 420)):
+        g.rect(x - 9, y, x + 9, y + 100, fill="#a9714b", outline=K, w=4)
+        g.ellipse(x - 52, y - 90, x + 52, y + 20, fill="#52b788", outline=K, w=5)
     _floor(g, "#8ac926", "#6fa51d")
 
 
 def _bg_space(g):
     _gradient(g, 0, FLOOR_Y, (14, 16, 48), (60, 40, 110))
     rnd = random.Random(7)
-    for _ in range(70):
-        x, y, r = rnd.randint(5, W - 5), rnd.randint(5, FLOOR_Y - 60), rnd.choice((2, 2, 3, 4))
+    for _ in range(95):
+        x, y, r = rnd.randint(5, W - 5), rnd.randint(5, FLOOR_Y - 30), rnd.choice((2, 2, 3, 4))
         g.ellipse(x - r, y - r, x + r, y + r, fill="#ffffff", outline=None, w=0)
-    g.ellipse(430, 140, 640, 350, fill="#f4a261", outline=K, w=6)
-    g.ellipse(455, 190, 575, 250, fill="#e76f51", outline=None, w=0)
-    g.arc(380, 200, 690, 290, 200, 340, fill=K, w=6)
-    g.ellipse(80, 260, 170, 350, fill="#8ecae6", outline=K, w=5)
+    g.ellipse(920, 80, 1110, 270, fill="#f4a261", outline=K, w=6)
+    g.arc(870, 135, 1160, 215, 200, 340, fill=K, w=6)
+    g.ellipse(140, 130, 225, 215, fill="#8ecae6", outline=K, w=5)
     _floor(g, "#9aa0b4", "#868ca3")
-    for x, y, r in ((120, 1000, 46), (420, 1100, 62), (600, 960, 36)):
+    for x, y, r in ((180, 610, 46), (640, 650, 62), (1040, 600, 40)):
         g.ellipse(x - r, y - r * 0.4, x + r, y + r * 0.4, fill="#868ca3", outline=K, w=3)
 
 
 def _bg_castle(g):
     g.rect(-5, 0, W + 5, FLOOR_Y, fill="#b8bcc7", outline=None, w=0)
-    for row, y in enumerate(range(0, FLOOR_Y, 70)):
+    for row, y in enumerate(range(0, FLOOR_Y, 65)):
         g.line([(0, y), (W, y)], fill="#8e93a1", w=3, caps=False)
-        for x in range(-40 if row % 2 else 0, W, 110):
-            g.line([(x, y), (x, y + 70)], fill="#8e93a1", w=3, caps=False)
-    g.rrect(270, 200, 450, 560, r=90, fill="#2b2d42", outline=K, w=7)
-    g.rrect(290, 220, 430, 540, r=70, fill="#8ecae6", outline=None, w=0)
-    for x in (70, 560):
-        g.poly([(x, 160), (x + 90, 160), (x + 90, 420), (x + 45, 380), (x, 420)], fill=RED, outline=K, w=5)
-        g.ellipse(x + 25, 230, x + 65, 270, fill=YEL, outline=K, w=3)
+        for x in range(-40 if row % 2 else 0, W, 115):
+            g.line([(x, y), (x, y + 65)], fill="#8e93a1", w=3, caps=False)
+    for wx in (360, 760):
+        g.rrect(wx, 110, wx + 160, 380, r=75, fill="#2b2d42", outline=K, w=7)
+        g.rrect(wx + 18, 128, wx + 142, 362, r=60, fill="#8ecae6", outline=None, w=0)
+    for x in (110, 1080):
+        g.poly([(x, 85), (x + 90, 85), (x + 90, 310), (x + 45, 275), (x, 310)], fill=RED, outline=K, w=5)
+        g.ellipse(x + 25, 145, x + 65, 185, fill=YEL, outline=K, w=3)
     _floor(g, "#8d8a99", "#7a7788")
-
-
-def _bg_plain(g):
-    _gradient(g, 0, FLOOR_Y, (255, 244, 224), (255, 226, 190))
-    g.ellipse(200, 160, 520, 480, fill="#ffe8cc", outline=None, w=0)
-    _floor(g, "#e9c9a0", "#d8b183")
 
 
 def _bg_ocean(g):
     _gradient(g, 0, FLOOR_Y, (88, 196, 220), (14, 90, 140))
     rnd = random.Random(11)
-    for _ in range(26):
-        x, y, r = rnd.randint(10, W - 10), rnd.randint(60, FLOOR_Y - 40), rnd.choice((6, 9, 12, 16))
+    for _ in range(36):
+        x, y, r = rnd.randint(10, W - 10), rnd.randint(30, FLOOR_Y - 30), rnd.choice((6, 9, 12, 16))
         g.ellipse(x - r, y - r, x + r, y + r, fill="#bdeaf5", outline="#e8f9ff", w=2)
-    for x, h in ((40, 190), (110, 130), (590, 210), (660, 150)):
+    for x, h in ((70, 170), (160, 120), (1060, 185), (1160, 135)):
         g.poly([(x, FLOOR_Y), (x - 26, FLOOR_Y - h * 0.5), (x + 6, FLOOR_Y - h * 0.8), (x - 8, FLOOR_Y - h),
                 (x + 30, FLOOR_Y - h * 0.6), (x + 14, FLOOR_Y - h * 0.3), (x + 34, FLOOR_Y)], fill="#2a9d8f", outline=K, w=4)
     g.rect(-10, FLOOR_Y, W + 10, H + 10, fill="#e9c46a", outline=K, w=5)
-    for x, y, r in ((120, 1010, 40), (440, 1090, 56), (620, 1000, 30), (260, 1160, 46)):
+    for x, y, r in ((180, 620, 40), (680, 650, 56), (1050, 615, 34)):
         g.ellipse(x - r, y - r * 0.5, x + r, y + r * 0.5, fill="#d4a24c", outline=K, w=3)
-    g.ellipse(560, 820, 660, 890, fill="#8d99ae", outline=K, w=4)
 
 
 def _bg_sky(g):
     _gradient(g, 0, FLOOR_Y, (70, 150, 235), (200, 232, 252))
-    g.ellipse(520, 100, 650, 230, fill="#ffe27a", outline=K, w=5)
-    for x, y, sc in ((120, 200, 1.1), (470, 360, 0.9), (200, 560, 1.0), (560, 700, 0.8), (80, 800, 0.7)):
+    g.ellipse(1040, 65, 1160, 185, fill="#ffe27a", outline=K, w=5)
+    for x, y, sc in ((180, 130, 1.1), (560, 200, 0.95), (860, 140, 0.85), (340, 320, 0.9), (980, 340, 0.8)):
         _cloud(g, x, y, sc)
     g.rect(-10, FLOOR_Y, W + 10, H + 10, fill="#f4faff", outline=K, w=5)
-    for x in range(-20, W + 80, 110):
-        g.ellipse(x - 20, FLOOR_Y - 40, x + 100, FLOOR_Y + 40, fill="#f4faff", outline=K, w=4)
+    for x in range(-20, W + 80, 120):
+        g.ellipse(x - 20, FLOOR_Y - 35, x + 110, FLOOR_Y + 35, fill="#f4faff", outline=K, w=4)
     g.rect(-10, FLOOR_Y + 2, W + 10, H + 10, fill="#f4faff", outline=None, w=0)
-    for y in range(FLOOR_Y + 70, H, 80):
-        g.line([(0, y), (W, y)], fill="#dbe9f6", w=3, caps=False)
 
 
 def _bg_lab(g):
     g.rect(-5, 0, W + 5, FLOOR_Y, fill="#e0f2ef", outline=None, w=0)
-    g.rect(40, 160, 320, 420, fill="#ffffff", outline=K, w=5)
+    g.rect(70, 85, 420, 310, fill="#ffffff", outline=K, w=5)
     for i, col in enumerate(("#e63946", "#2a9d8f", "#ffd166", "#5aa9e6", "#9b5de5", "#f4a261")):
-        x, y = 60 + (i % 3) * 86, 190 + (i // 3) * 110
-        g.rect(x, y, x + 62, y + 80, fill=col, outline=K, w=3)
-        g.text(x + 31, y + 40, "H" if i % 2 else "Fe", 24, fill="#ffffff")
-    g.rect(400, 140, 680, 520, fill="#cdeffd", outline=K, w=6)
-    g.line([(540, 140), (540, 520)], w=5, caps=False)
-    g.line([(400, 330), (680, 330)], w=5, caps=False)
-    for x, y, c in ((70, 470, "#e63946"), (160, 490, "#80ed99"), (240, 470, "#5aa9e6")):
-        g.poly([(x + 10, y - 60), (x + 30, y - 60), (x + 30, y - 30), (x + 50, y + 20), (x - 10, y + 20), (x + 10, y - 30)],
-               fill="#e9f7ff", outline=K, w=4)
-        g.poly([(x + 10, y - 6), (x + 30, y - 6), (x + 50, y + 20), (x - 10, y + 20)], fill=c, outline=K, w=3)
-    g.rect(30, 560, 340, 600, fill="#a9714b", outline=K, w=5)
-    for r_i, y in enumerate(range(FLOOR_Y, H + 60, 80)):
-        for c_i, x in enumerate(range(-20, W + 80, 90)):
-            xx = x + (45 if r_i % 2 else 0)
-            g.rect(xx, y, xx + 90, y + 80, fill="#ffffff" if (r_i + c_i) % 2 == 0 else "#ced4da", outline=K, w=3)
+        x, y = 95 + (i % 3) * 105, 110 + (i // 3) * 95
+        g.rect(x, y, x + 75, y + 72, fill=col, outline=K, w=3)
+        g.text(x + 37, y + 36, "H" if i % 2 else "Fe", 22, fill="#ffffff")
+    g.rect(780, 85, 1180, 360, fill="#cdeffd", outline=K, w=6)
+    g.line([(980, 85), (980, 360)], w=5, caps=False)
+    g.line([(780, 222), (1180, 222)], w=5, caps=False)
+    for r_i, y in enumerate(range(FLOOR_Y, H + 60, 65)):
+        for c_i, x in enumerate(range(-20, W + 80, 100)):
+            xx = x + (50 if r_i % 2 else 0)
+            g.rect(xx, y, xx + 100, y + 65, fill="#ffffff" if (r_i + c_i) % 2 == 0 else "#ced4da", outline=K, w=3)
     g.rect(-10, FLOOR_Y, W + 10, FLOOR_Y + 8, fill="#6c757d", outline=K, w=4)
 
 
 def _bg_desert(g):
     _gradient(g, 0, FLOOR_Y, (255, 190, 120), (255, 238, 190))
-    g.ellipse(70, 130, 220, 280, fill="#fff3b0", outline=K, w=5)
-    g.poly([(300, FLOOR_Y - 20), (450, FLOOR_Y - 300), (600, FLOOR_Y - 20)], fill="#e9c46a", outline=K, w=5)
-    g.poly([(450, FLOOR_Y - 300), (600, FLOOR_Y - 20), (520, FLOOR_Y - 20)], fill="#d4a24c", outline=None, w=0)
-    g.poly([(560, FLOOR_Y - 20), (640, FLOOR_Y - 170), (720, FLOOR_Y - 20)], fill="#e9c46a", outline=K, w=5)
-    g.ellipse(-250, 700, 450, 1000, fill="#f4a261", outline=K, w=5)
-    g.ellipse(300, 760, 1000, 1050, fill="#f6b26b", outline=K, w=5)
-    g.rect(120, 620, 148, 840, fill="#52b788", outline=K, w=5)
-    g.rect(80, 700, 120, 724, fill="#52b788", outline=K, w=4)
-    g.rect(80, 650, 104, 712, fill="#52b788", outline=K, w=4)
-    g.rect(148, 680, 190, 704, fill="#52b788", outline=K, w=4)
-    g.rect(170, 630, 194, 692, fill="#52b788", outline=K, w=4)
+    g.ellipse(100, 70, 220, 190, fill="#fff3b0", outline=K, w=5)
+    g.poly([(520, FLOOR_Y - 10), (720, FLOOR_Y - 260), (920, FLOOR_Y - 10)], fill="#e9c46a", outline=K, w=5)
+    g.poly([(860, FLOOR_Y - 10), (990, FLOOR_Y - 170), (1120, FLOOR_Y - 10)], fill="#d4a24c", outline=K, w=5)
+    g.rect(220, 340, 248, 520, fill="#52b788", outline=K, w=5)
+    g.rect(180, 400, 220, 424, fill="#52b788", outline=K, w=4)
+    g.rect(248, 385, 290, 409, fill="#52b788", outline=K, w=4)
     _floor(g, "#f2cc8f", "#dfb677")
+
+
+def _bg_plain(g):
+    _gradient(g, 0, FLOOR_Y, (255, 244, 224), (255, 226, 190))
+    g.ellipse(440, 80, 840, 440, fill="#ffe8cc", outline=None, w=0)
+    _floor(g, "#e9c9a0", "#d8b183")
 
 
 BACKGROUNDS = {
@@ -387,7 +390,6 @@ def _limb(sx, sy, sgn, a1, a2, l1=58, l2=56):
 
 
 def arm_angles(pose, t, amp, speaking):
-    """Mengembalikan ((upper,fore) lengan aktif [menghadap properti], (upper,fore) lengan pasif)."""
     s = math.sin
     if pose == "point":
         return (96 + s(t * 3) * 3, 96), (14 + s(t * 1.7) * 3, 8)
@@ -405,7 +407,6 @@ def arm_angles(pose, t, amp, speaking):
         return (24, -150), (14 + s(t * 1.7) * 3, 8)
     if pose == "idle":
         return (12 + s(t * 1.6) * 3, 6), (12 + s(t * 1.6) * 3, 6)
-    # talk: gerakan tangan berirama mengikuti suara
     g1 = s(t * 2.7) * 16
     boost = amp * 22 if speaking else 0
     return (58 + g1 + boost, 118 + g1 * 1.4 + boost), (16 + s(t * 2.1) * 6, 8)
@@ -446,34 +447,31 @@ def draw_character(g, cx, ground, t, amp, speaking, pose="talk", emotion="neutra
                    hat="none", outfit="tshirt", face=1):
     shirt = BLUE if outfit == "tshirt" else "#3d405b"
     bob = math.sin(t * 2.4) * 2
-    jump = abs(math.sin(t * 5.0)) * 38 if pose == "celebrate" else 0.0
+    jump = abs(math.sin(t * 5.0)) * 32 if pose == "celebrate" else 0.0
     cx = cx + (math.sin(t * 28) * 3.5 if pose == "panic" else 0)
     if speaking:
         bob -= amp * 4
     base = ground - jump
-    hip_y = base - 128
-    top = hip_y - 118 + bob
+    hip_y = base - 122
+    top = hip_y - 114 + bob
     sh_y = top + 24
     head_cy = top - 44
-    HR = 58
+    HR = 56
 
     g.ellipse(cx - 70, ground - 8, cx + 70, ground + 12, fill=(0, 0, 0, 50), outline=None, w=0)
 
-    # kaki
     wob = math.sin(t * 26) * 5 if pose == "panic" else 0
     for sgn in (-1, 1):
         fx = cx + sgn * (30 + (7 if pose == "celebrate" else 0)) + wob * sgn
         g.line([(cx + sgn * 15, hip_y), (fx, base - 6)], fill=K, w=10)
         g.ellipse(fx - 16 + face * 5, base - 12, fx + 16 + face * 5, base + 4, fill=K, outline=None, w=0)
 
-    # badan
     g.rrect(cx - 44, top, cx + 44, hip_y + 10, r=30, fill=shirt, outline=K, w=5)
     if outfit == "suit":
         g.poly([(cx - 14, top + 2), (cx + 14, top + 2), (cx, top + 46)], fill="#ffffff", outline=K, w=3)
         g.poly([(cx - 5, top + 14), (cx + 5, top + 14), (cx + 8, top + 60), (cx, top + 72), (cx - 8, top + 60)],
                fill=RED, outline=K, w=3)
 
-    # lengan
     act, pas = arm_angles(pose, t, amp, speaking)
     angs = {1: act, -1: pas} if face == 1 else {1: pas, -1: act}
     for sgn in (-1, 1):
@@ -484,7 +482,6 @@ def draw_character(g, cx, ground, t, amp, speaking, pose="talk", emotion="neutra
         g.ellipse(h[0] - 8, h[1] - 8, h[0] + 8, h[1] + 8, fill=K, outline=None, w=0)
         g.ellipse(sx - 17, sy - 15, sx + 17, sy + 19, fill=shirt, outline=K, w=4)
 
-    # kepala
     g.ellipse(cx - HR, head_cy - HR, cx + HR, head_cy + HR, fill="#ffffff", outline=K, w=6)
 
     ex = cx + face * 7
@@ -501,7 +498,6 @@ def draw_character(g, cx, ground, t, amp, speaking, pose="talk", emotion="neutra
             g.ellipse(x - 3 + face * 3, ey - 3, x + 3 + face * 3, ey + 3, fill=K, outline=None, w=0)
         else:
             g.ellipse(x - 5, ey - 6, x + 5, ey + 6, fill=K, outline=None, w=0)
-        # alis
         if emotion == "sad":
             y1, y2 = (ey - 14, ey - 25) if sgn == -1 else (ey - 25, ey - 14)
             g.line([(x - 11, y1), (x + 11, y2)], w=4)
@@ -538,7 +534,6 @@ def draw_character(g, cx, ground, t, amp, speaking, pose="talk", emotion="neutra
         else:
             g.line([(mx - 12, my + 4), (mx + 12, my + 4)], w=4)
 
-    # air mata / keringat
     if emotion == "sad" or pose == "cry":
         for sgn in (-1, 1):
             for k in range(2):

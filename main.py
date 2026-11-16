@@ -46,8 +46,8 @@ def create_cartoon_short(topic: str, language: str = "Indonesia", auto_upload: b
 
     voice = os.getenv("TTS_VOICE", "id-ID-ArdiNeural")
     rate = os.getenv("TTS_RATE", "+5%")
-    width = int(os.getenv("VIDEO_WIDTH", "720"))
-    height = int(os.getenv("VIDEO_HEIGHT", "1280"))
+    width = int(os.getenv("VIDEO_WIDTH", "1280"))
+    height = int(os.getenv("VIDEO_HEIGHT", "720"))
     fps = int(os.getenv("VIDEO_FPS", "24"))
 
     timestamp = int(time.time())

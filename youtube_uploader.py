@@ -62,15 +62,14 @@ def upload_to_youtube_shorts(
     tags: list,
     privacy_status: str = "public"
 ):
-    """Mengunggah file MP4 beserta Thumbnail, Judul, Deskripsi, dan Tag ke YouTube Shorts."""
+    """Mengunggah file MP4 beserta Thumbnail 16:9, Judul, Deskripsi, dan Tag ke YouTube."""
     youtube = get_authenticated_service()
     if youtube is None:
         return None
 
-    if "#Shorts" not in title:
-        title = f"{title[:85]} #Shorts"
+    title = title.replace("#Shorts", "").replace("#shorts", "").strip()
 
-    print(f"\n[*] Mengunggah video ke YouTube Shorts...")
+    print(f"\n[*] Mengunggah Long Video 16:9 ke YouTube...")
     print(f"    Judul : {title}")
     print(f"    Tags  : {', '.join(tags[:8])}")
 
@@ -79,7 +78,7 @@ def upload_to_youtube_shorts(
             "title": title[:100],
             "description": description,
             "tags": tags,
-            "categoryId": "24"
+            "categoryId": "27"
         },
         "status": {
             "privacyStatus": privacy_status,
@@ -101,7 +100,7 @@ def upload_to_youtube_shorts(
             print(f"    -> Progres Upload Video: {int(status.progress() * 100)}%")
 
     video_id = response.get("id")
-    print(f"[+] Video berhasil di-upload! Link: https://youtube.com/shorts/{video_id}")
+    print(f"[+] Video berhasil di-upload! Link: https://youtu.be/{video_id}")
 
     if thumbnail_path and os.path.exists(thumbnail_path):
         try:
