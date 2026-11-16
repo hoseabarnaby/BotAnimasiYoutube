@@ -43,12 +43,12 @@ def send_text(token, chat_id, text):
 
 
 def _compress_for_telegram(video_path):
-    """Buat versi video lebih kecil (540p) agar upload ke Telegram lebih stabil."""
+    """Buat versi video lebih kecil (854x480 16:9) agar upload ke Telegram lebih stabil."""
     small = video_path.replace(".mp4", "_small.mp4")
     try:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", video_path, "-vf", "scale=540:-2", "-c:v", "libx264", "-preset", "veryfast",
-             "-crf", "30", "-c:a", "aac", "-b:a", "96k", small],
+            ["ffmpeg", "-y", "-i", video_path, "-vf", "scale=854:480", "-c:v", "libx264", "-preset", "veryfast",
+             "-crf", "28", "-c:a", "aac", "-b:a", "96k", small],
             check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return small
     except Exception:
@@ -68,13 +68,13 @@ def send_video_and_assets(token, chat_id, work_dir):
     meta_path = os.path.join(work_dir, "YOUTUBE_METADATA.txt")
     storyboard_path = os.path.join(work_dir, "storyboard.json")
 
-    title, tags_str = "Video YouTube Shorts", ""
+    title, tags_str = "Video YouTube 16:9", ""
     if os.path.exists(storyboard_path):
         with open(storyboard_path, "r", encoding="utf-8") as f:
             sb = json.load(f)
             title = sb.get("title", title)
             tags_str = ", ".join(sb.get("tags", []))
-    caption = f"VIDEO SHORTS SELESAI!\n\nJudul: {title}\nTags: {tags_str[:150]}"
+    caption = f"🎬 LONG VIDEO 16:9 SELESAI!\n\n📌 Judul: {title}\n🏷️ Tags: {tags_str[:150]}"
 
     if os.path.exists(video_path):
         ok = _send_file(token, chat_id, "sendVideo", "video", video_path, caption)
@@ -86,7 +86,7 @@ def send_video_and_assets(token, chat_id, work_dir):
             send_text(token, chat_id, f"Video sudah jadi tapi gagal terkirim ke Telegram (koneksi). "
                                       f"Ambil manual di: {video_path}")
     if os.path.exists(thumb_path):
-        _send_file(token, chat_id, "sendPhoto", "photo", thumb_path, "Thumbnail YouTube Shorts")
+        _send_file(token, chat_id, "sendPhoto", "photo", thumb_path, "🖼️ Thumbnail YouTube 16:9 (1280x720)")
     if os.path.exists(meta_path):
         _send_file(token, chat_id, "sendDocument", "document", meta_path, "Judul, Deskripsi & Tags lengkap")
 

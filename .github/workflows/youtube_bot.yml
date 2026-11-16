@@ -19,7 +19,7 @@ on:
 
 concurrency:
   group: telegram_bot_listener
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build_and_upload_short:

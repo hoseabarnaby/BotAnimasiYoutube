@@ -14,16 +14,17 @@ from youtube_uploader import upload_to_youtube_shorts
 def save_youtube_metadata_txt(work_dir: str, title: str, thumb_text: str, description: str, tags: list) -> str:
     """Menyimpan Judul, Deskripsi, dan Tag ke file .txt yang rapi agar mudah di-copy atau dicek."""
     meta_path = os.path.join(work_dir, "YOUTUBE_METADATA.txt")
-    tags_comma = ", ".join(tags)
-    tags_hash = " ".join([f"#{t.replace(' ', '')}" for t in tags])
+    clean_tags = [t for t in tags if t.lower() not in ("shorts", "short", "#shorts")]
+    tags_comma = ", ".join(clean_tags)
+    tags_hash = " ".join([f"#{t.replace(' ', '')}" for t in clean_tags])
 
     content = (
         "========================================================\n"
-        "📌 JUDUL YOUTUBE SHORTS (TITLE)\n"
+        "📌 JUDUL YOUTUBE LONG VIDEO 16:9 (TITLE)\n"
         "========================================================\n"
         f"{title}\n\n"
         "========================================================\n"
-        "🖼️ TEKS THUMBNAIL\n"
+        "🖼️ TEKS THUMBNAIL 16:9\n"
         "========================================================\n"
         f"{thumb_text}\n\n"
         "========================================================\n"
@@ -46,8 +47,8 @@ def create_cartoon_short(topic: str, language: str = "Indonesia", auto_upload: b
 
     voice = os.getenv("TTS_VOICE", "id-ID-ArdiNeural")
     rate = os.getenv("TTS_RATE", "+5%")
-    width = int(os.getenv("VIDEO_WIDTH", "1280"))
-    height = int(os.getenv("VIDEO_HEIGHT", "720"))
+    width = 1280
+    height = 720
     fps = int(os.getenv("VIDEO_FPS", "24"))
 
     timestamp = int(time.time())
@@ -55,7 +56,7 @@ def create_cartoon_short(topic: str, language: str = "Indonesia", auto_upload: b
     os.makedirs(work_dir, exist_ok=True)
 
     print("=" * 65)
-    print("🎬 AI CARTOON SHORTS BOT V2 (REAL LIP-SYNC + THUMBNAIL + SEO)")
+    print("🎬 AI STICKMAN LONG VIDEO 16:9 BOT (WIDESCREEN HD + THUMBNAIL)")
     print("=" * 65)
 
     # 1. Buat Skrip Cerita, Judul, Deskripsi, Tags & Storyboard via DeepSeek API
@@ -64,10 +65,11 @@ def create_cartoon_short(topic: str, language: str = "Indonesia", auto_upload: b
     with open(storyboard_path, "w", encoding="utf-8") as f:
         json.dump(storyboard, f, indent=2, ensure_ascii=False)
 
-    title = storyboard.get("title", f"Fakta Unik {topic} #Shorts")
+    title = storyboard.get("title", f"Fakta Menarik {topic}").replace("#Shorts", "").replace("#shorts", "").strip()
     thumb_text = storyboard.get("thumbnail_text", "FAKTA MENGEJUTKAN!")
-    description = storyboard.get("description", "#Shorts #Animasi")
-    tags = storyboard.get("tags", ["Shorts", "Animasi", "FaktaUnik"])
+    description = storyboard.get("description", "").replace("#Shorts", "").replace("#shorts", "")
+    raw_tags = storyboard.get("tags", ["Animasi", "FaktaUnik", "Edukasi"])
+    tags = [t for t in raw_tags if t.lower() not in ("shorts", "short", "#shorts")]
     scenes = storyboard.get("scenes", [])
 
     # Simpan Judul, Deskripsi, dan Tag ke file YOUTUBE_METADATA.txt
