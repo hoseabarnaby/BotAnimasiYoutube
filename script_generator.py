@@ -14,12 +14,14 @@ KARAKTERISTIK GAYA VISUAL & CERITA (PERSIS CONTOH "ASAL MULA BITCOIN"):
 1. Setiap adegan adalah **1 Ilustrasi Sketsa Tinta & Pensil di atas Kertas Krem** (dengan aksen warna kuning/emas/oranye pada objek utama), disertai **JUDUL BAB SINGKAT (2-3 KATA KAPITAL)** di bagian atas gambar!
    Contoh judul bab (`title` di tiap scene): "NILAI MELEDAK", "BANKRUT TOTAL", "BLOK PERTAMA", "TEMBOK MATEMATIKA", "WASIT TERPUSAT", "OTOMATIS DITOLAK", "INSENTIF PENAMBANG", "BATAS MUTLAK", "KEBAL BOBOL".
 2. Naskah (`narration`) harus berbobot, punya alur dokumenter yang memikat:
-   - Adegan 1-2: HOOK & Kontras Mengejutkan (fakta gila, angka nyata, atau paradoks yang memancing rasa ingin tahu).
-   - Adegan 3-5: Akar Masalah / Krisis / Sejarah Awal (mengapa hal ini terjadi? apa masalah besarnya?).
-   - Adegan 6-10: Cara Kerja / Mekanisme Inti (dijelaskan dengan analogi brilian yang mudah dipahami anak SMP sekalipun, tapi tetap akurat dan cerdas).
-   - Adegan 11-13: Uji Ketahanan / Konflik / Plot Twist Nyata di Dunia.
-   - Adegan 14-16: Masa Depan, Kesimpulan Filosofis & Pertanyaan Diskusi untuk penonton.
-   - Panjang `narration` tiap adegan: 22 sampai 32 kata (kalimat Bahasa Indonesia yang mengalir natural, dramatis, TANPA emoji di dalam teks `narration`).
+   - ADEGAN 1 (COLD OPEN / HOOK 3-5 DETIK PERTAMA!): WAJIB singkat, tajam, maksimal 10-14 kata saja (sekitar 4 detik)! Jangan langsung bercerita panjang. Lemparkan 1 kalimat atau pertanyaan paling mengejutkan/mind-blowing sebagai pancingan pembuka (Cold Open), dengan `title` berupa pertanyaan singkat atau judul hook (contoh: "UANG TANPA TUAN?", "KENAPA BISA RUNTUH?").
+   - ADEGAN 2-3 (BAB PEMBUKA & KONTRAS MENGEJUTKAN): Baru mulai masuk ke cerita pembuka dengan fakta gila atau kontras sejarah.
+   - ADEGAN 4-6: Akar Masalah / Krisis / Sejarah Awal (mengapa hal ini terjadi? apa masalah besarnya?).
+   - ADEGAN 7-11: Cara Kerja / Mekanisme Inti (dijelaskan dengan analogi brilian yang mudah dipahami anak SMP sekalipun, tapi tetap akurat dan cerdas).
+   - ADEGAN 12-14: Uji Ketahanan / Konflik / Plot Twist Nyata di Dunia.
+   - ADEGAN 15-16: Masa Depan, Kesimpulan Filosofis & Pertanyaan Diskusi untuk penonton.
+   - Panjang `narration` Adegan 1 (Hook): 10 sampai 14 kata saja (3-5 detik).
+   - Panjang `narration` Adegan 2 dan seterusnya: 22 sampai 32 kata (kalimat Bahasa Indonesia yang mengalir natural, dramatis, TANPA emoji di dalam teks `narration`).
 
 ATURAN ELEMEN VISUAL TIAP ADEGAN:
 Untuk setiap adegan, berikan:
@@ -102,7 +104,11 @@ def get_fallback_demo_script(topic):
         ),
         "tags": ["Bitcoin", "Blockchain", "Ekonomi", "Teknologi", "AnimasiIndonesia", "Edukasi", "Sejarah"],
         "scenes": [
-            {"scene_id": 1, "title": "NILAI MELEDAK",
+            {"scene_id": 1, "title": "UANG TANPA BANK?",
+             "narration": "Bagaimana jadinya jika ada uang yang tidak bisa dikendalikan oleh pemerintah atau bank mana pun di dunia?",
+             "image_prompt": "a shocked stick figure pointing at a glowing golden coin in front of a crumbling bank building",
+             "setting": "bank", "props": ["🪙", "bank_building", "question_marks"], "pose": "point", "emotion": "shocked", "hat": "none", "camera_effect": "zoom_in"},
+            {"scene_id": 2, "title": "NILAI MELEDAK",
              "narration": "Pada tahun dua ribu sepuluh, seorang programmer membeli dua loyang pizza dengan sepuluh ribu koin digital yang kini nilainya setara lima belas triliun rupiah!",
              "image_prompt": "a shocked stick figure looking at a pizza box and an exploding volcano of golden coins",
              "setting": "city", "props": ["🪙", "🍕", "boom"], "pose": "panic", "emotion": "shocked", "hat": "none", "camera_effect": "zoom_in"},

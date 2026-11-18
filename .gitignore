@@ -1,5 +1,11 @@
-# Hanya abaikan folder hasil render video & cache Python
-# File .env dan youtube_token.pickle ikut di-upload ke Private Repo agar langsung jalan tanpa setting Secrets!
+# Jangan pernah upload file kunci mentah ke GitHub agar aman untuk Public Repository (Unlimited Actions)
+.env
+client_secrets.json
+client_secret_*.json
+youtube_token.pickle
+GITHUB_SECRET_YOUTUBE_TOKEN.txt
+
+# Folder hasil render & cache Python
 output/
 __pycache__/
 *.pyc
@@ -7,4 +13,3 @@ __pycache__/
 *.mp4
 *.mp3
 *.jpg
-GITHUB_SECRET_YOUTUBE_TOKEN.txt
