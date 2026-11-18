@@ -46,12 +46,13 @@ def get_font(size):
 class G:
     """Kuas gambar widescreen 1280x720 dengan supersampling."""
 
-    def __init__(self, img, s=S, ox=0, oy=0):
+    def __init__(self, img, s=S, ox=0, oy=0, lw=1.0):
         self.img = img
         self.d = ImageDraw.Draw(img)
         self.s = s
         self.ox = ox
         self.oy = oy
+        self.lw = lw          # pengali ketebalan garis (mode sketsa memakai garis tipis)
 
     def P(self, x, y):
         return ((x - self.ox) * self.s, (y - self.oy) * self.s)
@@ -62,7 +63,7 @@ class G:
         return [min(ax, bx), min(ay, by), max(ax, bx), max(ay, by)]
 
     def _w(self, w):
-        return max(1, int(round(w * self.s))) if w else 0
+        return max(1, int(round(w * self.s * self.lw))) if w else 0
 
     def line(self, pts, fill=K, w=5, caps=True):
         P = [self.P(*q) for q in pts]

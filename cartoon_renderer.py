@@ -1,16 +1,21 @@
 import os
 import math
-from PIL import Image, ImageDraw
-from stick_core import get_font, W, H, S, G, K, RED, YEL, BLUE, draw_character, make_background
-from stick_props import get_prop, normalize_prop
-from stick_engine import prepare_scene, compose_frame
+from PIL import Image, ImageDraw, ImageEnhance
+from stick_core import get_font, W, H, S, G, K
+from sketch_style import render_sketch_image, load_font, make_paper, wobble, _ground_doodle, _wash, _glow_layer, draw_sketch_character, SS, OUT_W, OUT_H, INK
+from stick_props import get_prop, normalize_prop, set_sketch_mode
+from stick_engine import prepare_scene
+import random
 
 
 def draw_word_subtitle(canvas, active_word, full_narration, current_time, word_timings):
     """
-    Subtitle Widescreen 16:9 Sinematik (5 kata per baris di bagian bawah tengah layar 1280x720)
-    dengan highlight kuning emas pada kata yang sedang diucapkan.
+    Dalam gaya dokumenter "Asal Mula Bitcoin" (Whiteboard Sketch Explainer),
+    layar bersih dari kotak subtitle bawah karena sudah ada JUDUL BAB besar di atas gambar.
+    Jika user ingin mengaktifkan subtitle bawah, bisa set SHOW_SUBTITLES=true di .env.
     """
+    if os.getenv("SHOW_SUBTITLES", "false").strip().lower() not in ("true", "1", "yes"):
+        return
     if not word_timings:
         return
     draw = ImageDraw.Draw(canvas)
@@ -30,30 +35,28 @@ def draw_word_subtitle(canvas, active_word, full_narration, current_time, word_t
     if not chunk_words:
         return
 
-    font_size = 42
+    font_size = 38
     font_sub = get_font(font_size)
     full_line = " ".join(cw["word"] for cw in chunk_words)
     bbox = draw.textbbox((0, 0), full_line, font=font_sub)
     total_w = bbox[2] - bbox[0]
-    while total_w > (w - 140) and font_size > 26:
+    while total_w > (w - 140) and font_size > 24:
         font_size -= 3
         font_sub = get_font(font_size)
         bbox = draw.textbbox((0, 0), full_line, font=font_sub)
         total_w = bbox[2] - bbox[0]
 
-    y_pos = int(h * 0.855)
-    pad_x, pad_y = 28, 14
+    y_pos = int(h * 0.88)
+    pad_x, pad_y = 24, 12
     box = [max(24, (w - total_w) // 2 - pad_x), y_pos - pad_y,
-           min(w - 24, (w + total_w) // 2 + pad_x), y_pos + (bbox[3] - bbox[1]) + pad_y + 8]
-    draw.rounded_rectangle(box, radius=18, fill=(15, 18, 28))
-    draw.rounded_rectangle(box, radius=18, outline="#ffffff", width=3)
+           min(w - 24, (w + total_w) // 2 + pad_x), y_pos + (bbox[3] - bbox[1]) + pad_y + 6]
+    draw.rounded_rectangle(box, radius=14, fill=(24, 24, 24))
+    draw.rounded_rectangle(box, radius=14, outline="#ffffff", width=2)
 
     cur_x = (w - total_w) // 2
     for i, cw in enumerate(chunk_words):
         word_text = cw["word"]
         fill_color = "#ffd166" if (chunk_start + i) == active_idx else "#ffffff"
-        for ox, oy in [(-3, -3), (3, -3), (-3, 3), (3, 3), (0, 4)]:
-            draw.text((cur_x + ox, y_pos + oy), word_text, font=font_sub, fill="#000000")
         draw.text((cur_x, y_pos), word_text, font=font_sub, fill=fill_color)
         wb = draw.textbbox((0, 0), word_text + " ", font=font_sub)
         cur_x += (wb[2] - wb[0])
@@ -61,44 +64,49 @@ def draw_word_subtitle(canvas, active_word, full_narration, current_time, word_t
 
 def generate_thumbnail_image(storyboard, work_dir, width=1280, height=720):
     """
-    Membuat Thumbnail YouTube 16:9 (1280x720) Kelas Atas dengan CTR Tinggi (gaya The Paint Explainer / Kurzgesagt / MrBeast):
-    - Latar belakang kontras tinggi dengan radial sunburst beams di belakang objek utama
-    - Panel Kiri: Teks HOOK Raksasa (2-3 baris) dengan kotak badge merah/kuning miring + outline 3D tebal
-    - Tengah: Karakter Stickman Close-Up Besar dengan ekspresi Shocked/Excited
-    - Kanan: Objek Utama / Ikon Topik Raksasa + Panah Merah Clickbait yang menunjuk ke objek!
+    Membuat Thumbnail 16:9 (1280x720) PERSIS GAYA CONTOH 'ASAL MULA BITCOIN':
+    - Kertas sketsa krem dengan vignette gelap dramatis di tepi luar
+    - Judul tulisan tangan tebal kapital di bagian atas tengah ("ASAL MULA BITCOIN")
+    - Karakter Stickman terkejut (mata melotot, mulut terbuka, tanda '?') menunjuk lurus ke arah objek utama
+    - Di tengah-kanan: Objek Utama (misal Koin Emas / simbol topik) bersinar kuning keemasan dengan garis-garis sinar tangan
+    - Di kanan belakang: Latar bangunan/elemen abu-abu sketsa (misal gedung BANK retak dicoret X) & siluet misterius di kiri!
     """
     scenes = storyboard.get("scenes", [])
-    first_scene = scenes[0] if scenes else {}
-    thumb_text = storyboard.get("thumbnail_text", storyboard.get("title", "FAKTA MENGEJUTKAN!"))
+    first_scene = dict(scenes[0]) if scenes else {}
+    thumb_text = storyboard.get("thumbnail_text", storyboard.get("title", "ASAL MULA BITCOIN"))
     thumb_text = thumb_text.replace("#Shorts", "").strip().upper()
 
-    # 1. Buat kanvas High-Res (2x supersampling) untuk Thumbnail 1280x720
-    tw, th = 1280, 720
-    bg_base = make_background(first_scene.get("setting", "city")).resize((tw, th), Image.Resampling.LANCZOS)
+    base = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
+    acc = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
+    gb = G(base, SS, 0, 0, lw=0.55)
+    ga = G(acc, SS, 0, 0, lw=0.60)
+    rng = random.Random(2026)
 
-    # Gelapkan sedikit sisi kiri agar teks judul 100% menonjol dan mudah dibaca
-    overlay = Image.new("RGBA", (tw * S, th * S), (0, 0, 0, 0))
-    g = G(overlay, S, 0, 0)
+    # 1. Garis tanah retak & bebatuan sketsa di bagian bawah
+    _ground_doodle(gb, rng)
+    # Tambah batu sketsa di pojok kiri bawah & kanan bawah
+    gb.poly([(40, 585), (75, 515), (145, 535), (175, 595)], fill="#d8d2c5", outline=INK, w=5)
+    gb.poly([(1060, 590), (1120, 520), (1210, 540), (1245, 595)], fill="#d8d2c5", outline=INK, w=5)
 
-    # Radial Sunburst Kuning/Putih di sisi kanan (pusat perhatian objek & karakter)
-    burst_cx, burst_cy = 960, 360
-    for i in range(16):
-        ang1 = math.radians(i * 22.5)
-        ang2 = math.radians(i * 22.5 + 10)
-        r_len = 650
-        pts = [
-            (burst_cx, burst_cy),
-            (burst_cx + r_len * math.cos(ang1), burst_cy + r_len * math.sin(ang1)),
-            (burst_cx + r_len * math.cos(ang2), burst_cy + r_len * math.sin(ang2)),
-        ]
-        g.poly(pts, fill=(255, 240, 150, 55), outline=None, w=0)
+    # 2. Siluet berjubah misterius + tanda '?' di latar kiri belakang (persis thumbnail Asal Mula Bitcoin!)
+    hood_x, hood_y = 225, 480
+    gb.poly([(hood_x - 52, hood_y + 70), (hood_x - 36, hood_y - 35), (hood_x, hood_y - 78),
+             (hood_x + 36, hood_y - 35), (hood_x + 52, hood_y + 70)], fill="#5c5954", outline=INK, w=5)
+    gb.ellipse(hood_x - 18, hood_y - 52, hood_x + 18, hood_y - 12, fill="#1a1a1a", outline=INK, w=3)
+    f_q = load_font("hand", 52 * SS)
+    gb.d.text(gb.P(hood_x + 48, hood_y - 88), "?", font=f_q, fill=INK, anchor="mm")
 
-    # Lingkaran Glow Kuning Terang di belakang Objek Utama (Kanan)
-    g.ellipse(830, 140, 1210, 520, fill="#ffd166", outline=K, w=8)
-    g.ellipse(855, 165, 1185, 495, fill="#fff3b0", outline=None, w=0)
+    # 3. Gedung BANK retak di sisi kanan belakang dengan coretan X di atasnya
+    set_sketch_mode(True, False)
+    bank_fn, _ = get_prop("bank_building")
+    bank_fn(gb, 1025, 545, 1.15, 1.5)
+    # Coretan silang X tebal di bagian atap tulisan BANK + garis retakan dinding
+    gb.line([(955, 345), (1095, 310)], fill=INK, w=7)
+    gb.line([(955, 310), (1095, 345)], fill=INK, w=7)
+    gb.line([(995, 390), (1010, 425), (998, 455), (1018, 490)], fill=INK, w=4)
 
-    # 2. Gambar Objek Utama Ukuran Raksasa di Lingkaran Kanan
-    raw_props = first_scene.get("props", [])
+    # 4. Objek Utama Bercahaya Emas di Tengah-Kanan (x=745, y=455) + Garis-Garis Pancaran Sinar
+    raw_props = first_scene.get("props", ["🪙", "🍕"])
     if isinstance(raw_props, str):
         raw_props = [p for p in raw_props.split(",")]
     prop_names = []
@@ -107,83 +115,56 @@ def generate_thumbnail_image(storyboard, work_dir, width=1280, height=720):
         if n and n not in prop_names:
             prop_names.append(n)
     if not prop_names:
-        prop_names = ["question_marks"]
+        prop_names = ["coins"]
 
-    main_prop = prop_names[0]
-    p_func, p_kind = get_prop(main_prop)
-    if p_kind == "ground":
-        p_func(g, 1020, 470, 1.35, 1.8)
-    elif p_kind == "high":
-        p_func(g, 1020, 330, 1.65, 1.8)
+    focus_x, focus_y = 755, 445
+    # Garis-garis sinar sketsa tangan di sekeliling objek utama
+    for i in range(12):
+        ang = math.radians(i * 30 + 10)
+        r1, r2 = 105, 138
+        gb.line([
+            (focus_x + r1 * math.cos(ang), focus_y + r1 * math.sin(ang)),
+            (focus_x + r2 * math.cos(ang), focus_y + r2 * math.sin(ang))
+        ], fill="#8c7a5b", w=4)
 
-    # Jika ada prop ke-2, taruh sebagai aksen di pojok kanan atas
-    if len(prop_names) >= 2:
-        p2_func, p2_kind = get_prop(prop_names[1])
-        if p2_kind == "high":
-            p2_func(g, 790, 145, 0.95, 1.5)
-
-    # 3. Gambar Karakter Stickman Close-Up Besar (Ekspresi Shocked/Heboh) di Tengah
-    char_layer = Image.new("RGBA", (500 * S, 600 * S), (0, 0, 0, 0))
-    cg = G(char_layer, S, 0, 0)
-    draw_character(
-        cg, cx=250, ground=560, t=1.2, amp=0.85, speaking=True,
-        pose="panic", emotion="shocked",
-        hat=first_scene.get("hat", "none"), outfit=first_scene.get("outfit", "tshirt"), face=1
-    )
-    # Perbesar karakter 1.45x agar tampak close-up dramatis di thumbnail
-    char_big = char_layer.resize((int(500 * S * 1.42), int(600 * S * 1.42)), Image.Resampling.LANCZOS)
-    overlay.alpha_composite(char_big, (int(390 * S), int(40 * S)))
-
-    # 4. Panel Teks HOOK Raksasa di Sisi Kiri (Gaya Thumbnail Viral)
-    words = thumb_text.split()
-    if len(words) >= 4:
-        lines = [" ".join(words[:2]), " ".join(words[2:4]), " ".join(words[4:])]
-        lines = [ln for ln in lines if ln.strip()]
-    elif len(words) == 3:
-        lines = [words[0], " ".join(words[1:])]
-    elif len(words) == 2:
-        lines = [words[0], words[1]]
+    set_sketch_mode(True, True)
+    main_fn, main_kind = get_prop(prop_names[0])
+    if main_kind == "ground":
+        main_fn(ga, focus_x, focus_y + 85, 1.15, 1.8)
     else:
-        lines = [thumb_text]
+        main_fn(ga, focus_x, focus_y, 1.25, 1.8)
 
-    badge_colors = [("#e63946", "#ffffff"), ("#ffd166", "#111111"), ("#ffffff", "#111111")]
-    base_y = 145 if len(lines) == 3 else 195
-    for idx, line in enumerate(lines[:3]):
-        bg_col, txt_col = badge_colors[idx % len(badge_colors)]
-        f_sz = 68 if len(line) <= 10 else (56 if len(line) <= 14 else 46)
-        box_w = min(560, max(280, int(len(line) * f_sz * 0.68) + 60))
-        box_h = f_sz + 38
-        bx1 = 48
-        by1 = base_y + idx * (box_h + 22)
-        bx2 = bx1 + box_w
-        by2 = by1 + box_h
+    # Prop ke-2 kecil di bawah lantai (seperti potongan pizza di thumbnail referensi)
+    if len(prop_names) >= 2:
+        p2_fn, p2_kind = get_prop(prop_names[1])
+        if p2_kind == "high":
+            p2_fn(ga, 815, 595, 0.58, 1.8)
+    set_sketch_mode(False)
 
-        # Bayangan 3D hitam keras di belakang kotak teks
-        g.rrect(bx1 + 10, by1 + 10, bx2 + 10, by2 + 10, r=18, fill="#000000", outline=None, w=0)
-        g.rrect(bx1, by1, bx2, by2, r=18, fill=bg_col, outline=K, w=7)
-        g.text((bx1 + bx2) / 2, (by1 + by2) / 2, line, f_sz, fill=txt_col,
-               stroke=4 if txt_col == "#ffffff" else 0, stroke_fill="#000000")
+    # 5. Karakter Stickman Utama Ukuran Besar di Kiri-Tengah (Menunjuk Lurus ke Objek Emas!)
+    gc = G(base, SS * 1.28, 0, 0, lw=0.60)
+    draw_sketch_character(gc, 435 / 1.28, 610 / 1.28, 0.9, pose="point", emotion="shocked", hat="none", face=1)
 
-    # 5. Panah Merah Clickbait Melengkung dari Teks Menunjuk ke Lingkaran Objek!
-    arrow_pts = [
-        (260, 560), (420, 620), (740, 560), (810, 485),
-        (775, 465), (875, 440), (855, 535), (828, 512),
-        (745, 600), (410, 660), (245, 595)
-    ]
-    g.poly(arrow_pts, fill="#e63946", outline=K, w=6)
+    # 6. Judul Besar Tulisan Spidol Tebal di Bagian Atas Tengah ("ASAL MULA BITCOIN")
+    layer = Image.alpha_composite(_wash(base), acc)
+    d = ImageDraw.Draw(layer)
+    title_size = 86 * SS
+    while title_size > 44 * SS:
+        if load_font("hand", title_size).getlength(thumb_text) <= (W - 180) * SS:
+            break
+        title_size -= 4 * SS
+    f_title = load_font("hand", title_size)
+    d.text((W * SS / 2, 95 * SS), thumb_text, font=f_title, fill="#141414",
+            anchor="mm", stroke_width=int(2.0 * SS), stroke_fill="#141414")
 
-    # Bingkai tepi kuning-hitam tegas di sekeliling thumbnail agar mencolok di beranda YouTube
-    g.rect(6, 6, tw - 6, th - 6, fill=None, outline="#ffd166", w=12)
-    g.rect(14, 14, tw - 14, th - 14, fill=None, outline=K, w=5)
+    ink = wobble(layer.resize((OUT_W, OUT_H), Image.Resampling.LANCZOS), amp=2.4, cell=30, seed=7)
+    paper = make_paper().convert("RGBA")
+    gl = _glow_layer(focus_x, focus_y, 165).resize((OUT_W, OUT_H), Image.Resampling.BILINEAR)
+    paper = Image.alpha_composite(paper, gl)
 
-    small_overlay = overlay.reduce(S)
-    final_thumb = bg_base.convert("RGBA")
-    final_thumb.alpha_composite(small_overlay, (0, 0))
-    final_rgb = final_thumb.convert("RGB")
-
-    if (width, height) != (tw, th):
-        final_rgb = final_rgb.resize((width, height), Image.Resampling.LANCZOS)
+    final_img = Image.alpha_composite(paper, ink).convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
+    final_img = ImageEnhance.Contrast(final_img).enhance(1.08)
 
     thumb_path = os.path.join(work_dir, "thumbnail.jpg")
-    final_rgb.save(thumb_path, quality=96)
+    final_img.save(thumb_path, quality=96)
     return thumb_path

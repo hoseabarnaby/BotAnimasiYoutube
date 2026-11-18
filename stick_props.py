@@ -7,7 +7,7 @@ Setiap properti: func(g, x, y, s, t)
 """
 import math
 import os
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 from stick_core import G, K, RED, YEL, BLUE, W, rot_rect, rot_pts, GROUND_Y
 
 GREEN = "#8fd18f"
@@ -576,12 +576,20 @@ _EMOJI_FONTS = [
     ("/System/Library/Fonts/Apple Color Emoji.ttc", 160),
 ]
 _EMOJI_CACHE = {}
+SKETCH_MODE = {"on": False, "accent": False}
 
 
-def _emoji_base(ch):
-    """Sprite emoji berwarna + garis hitam tebal (stiker). None jika font emoji tidak tersedia."""
-    if ch in _EMOJI_CACHE:
-        return _EMOJI_CACHE[ch]
+def set_sketch_mode(on, accent=False):
+    """Mode sketsa: ikon emoji digambar dengan garis tipis; accent=True mempertahankan warna penuh."""
+    SKETCH_MODE["on"] = bool(on)
+    SKETCH_MODE["accent"] = bool(accent)
+
+
+def _emoji_base(ch, outline_r=11):
+    """Sprite emoji berwarna + garis hitam (stiker). None jika font emoji tidak tersedia."""
+    key = (ch, outline_r)
+    if key in _EMOJI_CACHE:
+        return _EMOJI_CACHE[key]
     base = None
     for path, size in _EMOJI_FONTS:
         if not os.path.exists(path):
@@ -599,30 +607,40 @@ def _emoji_base(ch):
             pad = 22
             c2 = Image.new("RGBA", (spr.width + pad * 2, spr.height + pad * 2), (0, 0, 0, 0))
             c2.alpha_composite(spr, (pad, pad))
-            dil = c2.getchannel("A").filter(ImageFilter.MaxFilter(2 * 11 + 1))
+            dil = c2.getchannel("A").filter(ImageFilter.MaxFilter(2 * outline_r + 1))
             outline = Image.new("RGBA", c2.size, (26, 26, 26, 255))
             outline.putalpha(dil)
             base = Image.alpha_composite(outline, c2)
             break
         except Exception:
             continue
-    _EMOJI_CACHE[ch] = base
+    _EMOJI_CACHE[key] = base
     return base
 
 
 def emoji_prop(g, x, y, s, t, ch):
-    drift = math.sin(t * 1.4) * 18 * s
-    bob = math.sin(t * 2.6) * 10 * s
-    base = _emoji_base(ch)
+    sketch = SKETCH_MODE["on"]
+    drift = (0 if sketch else math.sin(t * 1.4) * 18) * s
+    bob = (0 if sketch else math.sin(t * 2.6) * 10) * s
+    base = _emoji_base(ch, 4 if sketch else 11)
     if base is None:
         g.ellipse(x - 60 * s, y - 60 * s, x + 60 * s, y + 60 * s, fill=YEL, outline=K, w=5)
         g.text(x, y, "?", 80 * s, fill=K)
         return
-    target = 200 * s * g.s * (1 + 0.04 * math.sin(t * 5))
+    if sketch and not SKETCH_MODE["accent"]:
+        # warna dipudarkan (abu-abu hangat) agar hanya objek utama yang berwarna
+        rgb = base.convert("RGB")
+        gray = ImageOps.grayscale(rgb).convert("RGB")
+        washed = Image.blend(rgb, gray, 0.78)
+        washed = Image.blend(washed, Image.new("RGB", washed.size, (238, 232, 220)), 0.18)
+        washed.putalpha(base.getchannel("A"))
+        base = washed
+    target = 200 * s * g.s * (1 + (0 if sketch else 0.04 * math.sin(t * 5)))
     sc = target / float(max(base.size))
     w, h = max(2, int(base.width * sc)), max(2, int(base.height * sc))
-    spr = base.resize((w, h), Image.Resampling.BILINEAR).rotate(
-        math.sin(t * 2.0) * 7, expand=True, resample=Image.Resampling.BICUBIC)
+    spr = base.resize((w, h), Image.Resampling.BILINEAR)
+    if not sketch:
+        spr = spr.rotate(math.sin(t * 2.0) * 7, expand=True, resample=Image.Resampling.BICUBIC)
     cx, cy = g.P(x + drift, y + bob)
     x0, y0 = int(cx - spr.width / 2), int(cy - spr.height / 2)
     region = g.img.crop((x0, y0, x0 + spr.width, y0 + spr.height))
