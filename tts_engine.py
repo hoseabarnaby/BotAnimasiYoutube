@@ -1,13 +1,147 @@
 import os
+import re
+import wave
+import base64
 import asyncio
 import subprocess
 import numpy as np
+import requests
 import edge_tts
 
 
-async def _generate_scene_tts(text: str, voice: str, rate: str, audio_path: str):
-    """Generate MP3 audio and extract word-level timing boundaries using edge-tts."""
-    communicate = edge_tts.Communicate(text, voice, rate=rate)
+def _format_expressive_text(text: str) -> str:
+    """
+    Memperbaiki ritme bacaan TTS agar intonasinya naik-turun alami seperti narator manusia:
+    - Memberi jeda napas halus setelah kata hubung dramatis
+    - Memastikan tanda baca ekspresif terbaca oleh mesin neural TTS
+    """
+    t = text.strip()
+    # Pastikan kata pembuka dramatis punya jeda koma agar ada penekanan intonasi
+    for word in ("Bayangkan", "Ternyata", "Masalahnya", "Anehnya", "Sayangnya", "Hasilnya", "Namun", "Padahal"):
+        t = re.sub(rf"\b{word}\s+(?!,)", f"{word}, ", t)
+    return t
+
+
+def apply_studio_podcast_mastering(input_mp3: str):
+    """
+    Memproses audio voiceover dengan FFmpeg Studio Podcast Mastering:
+    1. Equalizer Warm Bass (+4.5dB di 125Hz) -> menghilangkan suara tipis/cempreng AI, memberi bobot suara dada hangat.
+    2. Presence Boost (+3dB di 3600Hz) -> membuat artikulasi vokal terdengar jernih dan dekat di telinga.
+    3. Dynamic Audio Compressor (acompressor) -> membuat suara terdengar padat, bertenaga, dan berwibawa seperti podcaster.
+    4. Loudness Normalization -> volume stabil dan lantang di YouTube.
+    """
+    temp_out = input_mp3.replace(".mp3", "_mastered.mp3")
+    af_chain = (
+        "equalizer=f=125:t=q:w=1.1:g=4.5,"
+        "equalizer=f=280:t=q:w=1.5:g=-1.5,"
+        "equalizer=f=3600:t=q:w=1.2:g=3.0,"
+        "acompressor=threshold=-18dB:ratio=2.8:attack=15:release=180:makeup=3.5dB,"
+        "alimiter=limit=0.95"
+    )
+    try:
+        cmd = [
+            "ffmpeg", "-y", "-v", "error",
+            "-i", input_mp3,
+            "-af", af_chain,
+            "-ar", "44100",
+            "-ac", "2",
+            "-b:a", "192k",
+            temp_out
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists(temp_out) and os.path.getsize(temp_out) > 1000:
+            os.replace(temp_out, input_mp3)
+    except Exception:
+        if os.path.exists(temp_out):
+            try:
+                os.remove(temp_out)
+            except Exception:
+                pass
+
+
+def _try_gemini_human_tts(text: str, output_mp3: str) -> bool:
+    """
+    Jika GEMINI_API_KEY tersedia di .env, gunakan Gemini 2.5 Flash Native Audio TTS
+    (Suara manusia super ekspresif & bergairah dengan gaya pencerita dokumenter).
+    """
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return False
+
+    voice_name = os.getenv("GEMINI_TTS_VOICE", "Puck").strip()  # Puck / Charon / Kore / Fenrir
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key={api_key}"
+    prompt_text = (
+        "Bacakan narasi dokumenter YouTube ini dengan suara manusia yang sangat menarik, "
+        "antusias, hangat, berwibawa, dan penuh ekspresi (tidak datar): " + text
+    )
+    body = {
+        "contents": [{"parts": [{"text": prompt_text}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {
+                "voiceConfig": {
+                    "prebuiltVoiceConfig": {"voiceName": voice_name}
+                }
+            }
+        }
+    }
+    try:
+        r = requests.post(url, json=body, timeout=45)
+        if r.status_code != 200:
+            return False
+        data = r.json()
+        for cand in data.get("candidates", []):
+            for part in cand.get("content", {}).get("parts", []):
+                inline = part.get("inlineData") or part.get("inline_data")
+                if inline and inline.get("data"):
+                    pcm_bytes = base64.b64decode(inline["data"])
+                    temp_wav = output_mp3.replace(".mp3", "_gem.wav")
+                    with wave.open(temp_wav, "wb") as wf:
+                        wf.setnchannels(1)
+                        wf.setsampwidth(2)
+                        wf.setframerate(24000)
+                        wf.writeframes(pcm_bytes)
+                    subprocess.run(
+                        ["ffmpeg", "-y", "-v", "error", "-i", temp_wav, "-ar", "44100", "-ac", "2", "-b:a", "192k", output_mp3],
+                        check=True
+                    )
+                    try:
+                        os.remove(temp_wav)
+                    except Exception:
+                        pass
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _try_elevenlabs_tts(text: str, output_mp3: str) -> bool:
+    """Jika ELEVENLABS_API_KEY tersedia di .env, gunakan ElevenLabs Multilingual v2."""
+    api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+    if not api_key:
+        return False
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB").strip()  # Adam / Custom voice
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
+    body = {
+        "text": text,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {"stability": 0.42, "similarity_boost": 0.80, "style": 0.55, "use_speaker_boost": True}
+    }
+    try:
+        r = requests.post(url, json=body, headers=headers, timeout=45)
+        if r.status_code == 200 and len(r.content) > 2000:
+            with open(output_mp3, "wb") as f:
+                f.write(r.content)
+            return True
+    except Exception:
+        pass
+    return False
+
+
+async def _generate_scene_tts(text: str, voice: str, rate: str, pitch: str, audio_path: str):
+    """Generate MP3 audio and extract word-level timing boundaries using edge-tts with expressive pitch & rate."""
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     word_timings = []
 
     with open(audio_path, "wb") as audio_file:
@@ -42,10 +176,7 @@ def get_audio_duration(audio_path: str) -> float:
 
 
 def extract_mouth_envelope(audio_path: str, fps: int, duration: float) -> list:
-    """
-    Mengekstrak amplitudo (keras-lembutnya) suara asli dari file MP3 pada setiap frame video.
-    Dengan ini, mulut karakter membuka dan menutup 100% PAS mengikuti suku kata & jeda napas suara TTS!
-    """
+    """Mengekstrak amplitudo suara dari file MP3 pada setiap frame video."""
     total_frames = max(1, int(duration * fps) + 5)
     sample_rate = 8000
     try:
@@ -79,7 +210,6 @@ def extract_mouth_envelope(audio_path: str, fps: int, duration: float) -> list:
         if max_rms < 10.0:
             max_rms = 1.0
 
-        # Normalisasi 0.0 - 1.0 dengan noise gate (jeda napas = mulut tertutup rapat)
         norm_env = []
         for val in raw_env:
             v = val / (max_rms * 0.80)
@@ -87,7 +217,6 @@ def extract_mouth_envelope(audio_path: str, fps: int, duration: float) -> list:
                 v = 0.0
             norm_env.append(min(1.0, v))
 
-        # Smoothing antar frame agar gerakan mulut mulus dan tidak berkedip terlalu cepat
         smoothed = []
         for i in range(len(norm_env)):
             prev_v = norm_env[max(0, i - 1)]
@@ -101,15 +230,10 @@ def extract_mouth_envelope(audio_path: str, fps: int, duration: float) -> list:
 
 
 def build_natural_word_timings(text: str, total_duration: float, mouth_envelope: list, fps: int) -> list:
-    """
-    Membagi timing subtitle per kata secara proporsional mengikuti panjang huruf & jeda tanda baca,
-    serta disinkronkan dengan detik pertama dan terakhir suara aktif.
-    """
     words = text.split()
     if not words:
         return []
 
-    # Cari kapan suara benar-benar mulai dan berhenti dari envelope audio
     start_offset = 0.08
     end_time = max(0.5, total_duration - 0.15)
     for idx, amp in enumerate(mouth_envelope):
@@ -122,8 +246,6 @@ def build_natural_word_timings(text: str, total_duration: float, mouth_envelope:
             break
 
     usable_dur = max(0.5, end_time - start_offset)
-
-    # Bobot durasi per kata berdasarkan jumlah karakter + jeda koma/titik
     weights = []
     for w in words:
         base_w = max(2, len(w))
@@ -152,18 +274,32 @@ def synthesize_scene_audio(
     text: str,
     output_mp3: str,
     voice: str = "id-ID-ArdiNeural",
-    rate: str = "+5%",
+    rate: str = "+12%",
     fps: int = 24
 ) -> dict:
     """
-    Membuat file MP3 untuk 1 scene, mengekstrak envelope amplitudo suara asli untuk auto lip-sync mulut,
-    serta timing per kata untuk subtitle.
+    Membuat voiceover untuk 1 adegan dengan kualitas Studio Podcast:
+    - Otomatis memformat teks agar intonasi ekspresif & tidak datar
+    - Mendukung Gemini Human TTS / ElevenLabs (jika API key diisi) atau Edge-TTS Neural dengan pitch & speed energik
+    - Menerapkan Studio Podcast Mastering (Warm Bass EQ + Presence + Dynamic Compression)
     """
     os.makedirs(os.path.dirname(output_mp3), exist_ok=True)
-    word_timings = asyncio.run(_generate_scene_tts(text, voice, rate, output_mp3))
-    duration = get_audio_duration(output_mp3)
+    expressive_text = _format_expressive_text(text)
+    pitch = os.getenv("TTS_PITCH", "-2Hz").strip()
+    # Kecepatan +12% membuat suara jauh lebih bergairah, antusias, dan tidak mengantuk seperti robot
+    if rate in ("+0%", "+5%", ""):
+        rate = "+12%"
 
-    # Ekstrak gelombang amplitudo suara asli (agar mulut gerak pas mengikuti suku kata)
+    word_timings = []
+    used_human_api = _try_elevenlabs_tts(expressive_text, output_mp3) or _try_gemini_human_tts(expressive_text, output_mp3)
+
+    if not used_human_api:
+        word_timings = asyncio.run(_generate_scene_tts(expressive_text, voice, rate, pitch, output_mp3))
+
+    # Terapkan Studio Podcast Audio Mastering agar suara hangat, nge-bass, dan bertenaga!
+    apply_studio_podcast_mastering(output_mp3)
+
+    duration = get_audio_duration(output_mp3)
     mouth_envelope = extract_mouth_envelope(output_mp3, fps=fps, duration=duration)
 
     if not word_timings:

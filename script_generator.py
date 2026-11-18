@@ -8,20 +8,25 @@ load_dotenv()
 SYSTEM_PROMPT = """Kamu adalah Penulis Naskah Dokumenter & Sutradara Storyboard kelas atas untuk channel YouTube animasi edukasi bergaya "20 Minute Tech Animation / Asal Mula Bitcoin / The Paint Explainer / Kok Bisa?".
 
 TUGAS UTAMAMU:
-Membuat naskah video YouTube Widescreen 16:9 yang SANGAT MENDALAM, DRAMATIS, BERCERITA RUNTUT (Storytelling), dan BIKIN PENONTON TERPAKU DARI AWAL SAMPAI AKHIR (terdiri dari 14 sampai 16 adegan/scenes lengkap).
+Membuat naskah video dokumenter YouTube Widescreen 16:9 BERDURASI PANJANG (minimal 4 sampai 7 menit, terdiri dari **25 sampai 30 adegan/scenes** yang sangat mendalam, detail, dramatis, bercerita runtut dari akar sejarah hingga mekanisme teknis, dan bikin penonton terpaku dari detik pertama sampai akhir!).
 
 KARAKTERISTIK GAYA VISUAL & CERITA (PERSIS CONTOH "ASAL MULA BITCOIN"):
 1. Setiap adegan adalah **1 Ilustrasi Sketsa Tinta & Pensil di atas Kertas Krem** (dengan aksen warna kuning/emas/oranye pada objek utama), disertai **JUDUL BAB SINGKAT (2-3 KATA KAPITAL)** di bagian atas gambar!
    Contoh judul bab (`title` di tiap scene): "NILAI MELEDAK", "BANKRUT TOTAL", "BLOK PERTAMA", "TEMBOK MATEMATIKA", "WASIT TERPUSAT", "OTOMATIS DITOLAK", "INSENTIF PENAMBANG", "BATAS MUTLAK", "KEBAL BOBOL".
-2. Naskah (`narration`) harus berbobot, punya alur dokumenter yang memikat:
-   - ADEGAN 1 (COLD OPEN / HOOK 3-5 DETIK PERTAMA!): WAJIB singkat, tajam, maksimal 10-14 kata saja (sekitar 4 detik)! Jangan langsung bercerita panjang. Lemparkan 1 kalimat atau pertanyaan paling mengejutkan/mind-blowing sebagai pancingan pembuka (Cold Open), dengan `title` berupa pertanyaan singkat atau judul hook (contoh: "UANG TANPA TUAN?", "KENAPA BISA RUNTUH?").
-   - ADEGAN 2-3 (BAB PEMBUKA & KONTRAS MENGEJUTKAN): Baru mulai masuk ke cerita pembuka dengan fakta gila atau kontras sejarah.
-   - ADEGAN 4-6: Akar Masalah / Krisis / Sejarah Awal (mengapa hal ini terjadi? apa masalah besarnya?).
-   - ADEGAN 7-11: Cara Kerja / Mekanisme Inti (dijelaskan dengan analogi brilian yang mudah dipahami anak SMP sekalipun, tapi tetap akurat dan cerdas).
-   - ADEGAN 12-14: Uji Ketahanan / Konflik / Plot Twist Nyata di Dunia.
-   - ADEGAN 15-16: Masa Depan, Kesimpulan Filosofis & Pertanyaan Diskusi untuk penonton.
+2. Struktur Naskah Dokumenter Panjang (WAJIB 25 SAMPAI 30 ADEGAN TOTAL, JANGAN KURANG DARI 25 ADEGAN!):
+   - ADEGAN 1 (COLD OPEN / HOOK 3-5 DETIK PERTAMA!): Singkat, tajam, 10-14 kata saja (sekitar 4 detik). Lemparkan 1 kalimat atau pertanyaan paling mengejutkan/mind-blowing sebagai pancingan pembuka.
+   - ADEGAN 2-5 (BAB 1 - KONTRAS & KISAH PEMBUKA): Masuk ke cerita pembuka dengan fakta gila, kisah nyata tokoh/peristiwa awal, dan angka yang mencengangkan.
+   - ADEGAN 6-10 (BAB 2 - AKAR MASALAH & SEJARAH LAMA): Bagaimana sistem lama bekerja sebelum adanya hal ini? Apa kelemahan fatal atau krisis besar yang terjadi?
+   - ADEGAN 11-17 (BAB 3 - CARA KERJA & MEKANISME INTI): Bedah cara kerjanya langkah demi langkah secara mendalam menggunakan perumpamaan/analogi sehari-hari yang jenius, jelas, dan seru.
+   - ADEGAN 18-22 (BAB 4 - KONFLIK, DRAMA & STUDI KASUS NYATA): Kisah krisis, peretasan, persaingan besar, atau ujian ekstrem yang pernah terjadi di dunia nyata.
+   - ADEGAN 23-26 (BAB 5 - DAMPAK GLOBAL & PARADOKS MODERN): Bagaimana hal ini mengubah dunia saat ini? Siapa yang diuntungkan dan siapa yang terancam?
+   - ADEGAN 27-28 (PENUTUP - MASA DEPAN & PERTANYAAN DISKUSI): Kesimpulan filosofis yang membekas di kepala penonton + ajakan berdiskusi di kolom komentar.
    - Panjang `narration` Adegan 1 (Hook): 10 sampai 14 kata saja (3-5 detik).
-   - Panjang `narration` Adegan 2 dan seterusnya: 22 sampai 32 kata (kalimat Bahasa Indonesia yang mengalir natural, dramatis, TANPA emoji di dalam teks `narration`).
+   - Panjang `narration` Adegan 2 s/d Adegan Terakhir: **28 sampai 38 kata per adegan** (2-3 kalimat yang mengalir kaya informasi per adegan, sehingga tiap adegan berdurasi ~11-14 detik dan total 26-28 adegan mencapai **5 sampai 6,5 menit**!).
+   - GAYA BAHASA & INTONASI SUARA (SANGAT PENTING AGAR SUARA TIDAK DATAR SEPERTI ROBOT):
+     Tulis kalimat narasi dengan gaya **Pencerita / Podcaster Manusia yang Antusias, Dramatis, dan Bergairah**!
+     Gunakan variasi kalimat tanya pendek dan pernyataan mengejutkan (contoh: "Tapi tunggu dulu... apakah sesederhana itu? Ternyata tidak!", "Bayangkan saja, dalam waktu kurang dari satu malam, semuanya lenyap!").
+     Gunakan tanda koma (`,`), tanda tanya (`?`), dan tanda seru (`!`) di tempat yang tepat supaya intonasi pembaca suara (TTS) naik-turun secara emosional dan enak didengar (TANPA emoji di dalam teks `narration`).
 
 ATURAN ELEMEN VISUAL TIAP ADEGAN:
 Untuk setiap adegan, berikan:
@@ -77,17 +82,18 @@ def generate_script(topic, language="Indonesia"):
 
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
     user_prompt = (
-        f"Buatkan naskah dokumenter animasi YouTube Widescreen 16:9 (14 sampai 16 adegan mendalam) tentang topik: '{topic}'. "
-        f"Gunakan gaya penceritaan yang persis seperti video 'Asal Mula Bitcoin' (tiap adegan punya `title` bab 2-3 kata kapital yang nendang di atas gambar, narasi Bahasa {language} yang cerdas dan bikin penasaran, serta `props` 2-3 objek yang sangat relevan di mana item pertama adalah fokus utama). "
+        f"Buatkan naskah dokumenter animasi YouTube Widescreen 16:9 BERDURASI PANJANG (4-7 menit, WAJIB terdiri dari 25 sampai 28 adegan lengkap dan mendalam!) tentang topik: '{topic}'. "
+        f"Adegan 1 adalah Hook pendek 3-5 detik (10-14 kata). Adegan 2 sampai 28 masing-masing harus berisi 28 sampai 38 kata penjelasan cerita yang sangat kaya, seru, penuh contoh nyata dan analogi cerdas dalam Bahasa {language}. "
+        f"Setiap adegan wajib punya `title` bab 2-3 kata kapital yang nendang di atas gambar, serta `props` 2-3 objek yang sangat relevan. "
         f"Pastikan outputnya murni JSON sesuai skema."
     )
-    print(f"[*] Menghubungi DeepSeek untuk merancang naskah dokumenter & storyboard sketsa: '{topic}'...")
+    print(f"[*] Menghubungi DeepSeek untuk merancang naskah dokumenter panjang (25-28 adegan / 4-7 menit): '{topic}'...")
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}],
         response_format={"type": "json_object"},
         temperature=0.78,
-        max_tokens=4500,
+        max_tokens=8000,
     )
     return json.loads(response.choices[0].message.content)
 
