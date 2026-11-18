@@ -35,7 +35,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Setup Color Emoji Font (Fast 1-Second Download without apt-get hang)
+      - name: Setup FFmpeg & FFprobe (Fast Static Binary - 3 Seconds, No apt-get!)
+        uses: FedericoCarboni/setup-ffmpeg@v3
+
+      - name: Setup Color Emoji & Hand Fonts (Fast 1-Second Download)
         run: |
           sudo mkdir -p /usr/share/fonts/truetype/noto /usr/share/fonts/truetype/humor-sans
           sudo curl -sL https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf -o /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf
@@ -48,6 +51,7 @@ jobs:
       - name: Run Bot Nonstop (Standby 5 Jam Penuh Menunggu Chat Telegram Kamu)
         run: |
           export PYTHONUNBUFFERED=1
+          ffmpeg -version
           if [ -n "${{ github.event.inputs.topic }}" ]; then
             python -u main.py --topic "${{ github.event.inputs.topic }}" --upload
           else
