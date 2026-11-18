@@ -1,11 +1,9 @@
 name: AI Cartoon Shorts Bot (Telegram + Auto YouTube)
 
 on:
-  # 1. OTOMATIS LANGSUNG JALAN BEGITU DI-UPLOAD (PUSH) KE GITHUB!
   push:
     branches: [ main ]
 
-  # 2. Bisa juga dijalankan manual dari tab Actions
   workflow_dispatch:
     inputs:
       topic:
@@ -13,7 +11,6 @@ on:
         required: false
         default: ""
 
-  # 3. Otomatis nyambung terus menerus
   schedule:
     - cron: "*/30 * * * *"
 
@@ -23,7 +20,7 @@ concurrency:
 
 jobs:
   build_and_upload_short:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 350
     permissions:
       contents: write
@@ -36,11 +33,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
-      - name: Install System Fonts & FFmpeg
+      - name: Setup Color Emoji Font (Fast 1-Second Download without apt-get hang)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-liberation fonts-dejavu-core fonts-noto-color-emoji
+          sudo mkdir -p /usr/share/fonts/truetype/noto /usr/share/fonts/truetype/humor-sans
+          sudo curl -sL https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf -o /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf
+          sudo curl -sL https://github.com/shreyankg/xkcd-desktop/raw/master/Humor-Sans.ttf -o /usr/share/fonts/truetype/humor-sans/Humor-Sans.ttf || true
 
       - name: Install Python Dependencies
         run: |
@@ -48,10 +47,11 @@ jobs:
 
       - name: Run Bot Nonstop (Standby 5 Jam Penuh Menunggu Chat Telegram Kamu)
         run: |
+          export PYTHONUNBUFFERED=1
           if [ -n "${{ github.event.inputs.topic }}" ]; then
-            python main.py --topic "${{ github.event.inputs.topic }}" --upload
+            python -u main.py --topic "${{ github.event.inputs.topic }}" --upload
           else
-            python telegram_bot.py --max-minutes 300
+            python -u telegram_bot.py --max-minutes 300
           fi
 
       - name: Save Telegram Offset so Messages Are Not Repeated
